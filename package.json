@@ -25,14 +25,36 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.4",
-    "electron": "^29.1.1",
-    "electron-builder": "^24.13.3",
-    "typescript": "^5.4.2",
-    "vite": "^5.1.5",
-    "vite-plugin-electron": "^0.28.4",
-    "vite-plugin-electron-renderer": "^0.14.5",
-    "vue": "^3.4.21",
-    "vue-tsc": "^2.0.6"
+    "@types/lodash": "^4.17.16",
+    "@unocss/preset-attributify": "66.1.0-beta.5",
+    "@unocss/preset-icons": "66.1.0-beta.5",
+    "@unocss/preset-uno": "66.1.0-beta.5",
+    "@unocss/reset": "66.1.0-beta.5",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "electron": "^35.0.1",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.8.2",
+    "unocss": "66.1.0-beta.5",
+    "unplugin-auto-import": "^19.1.1",
+    "vite": "^6.2.2",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "vue": "^3.5.13",
+    "vue-tsc": "^2.2.8"
+  },
+  "dependencies": {
+    "@iconify/json": "^2.2.316",
+    "@meanc/webext-fetch": "^0.0.3",
+    "@vueuse/core": "^13.0.0",
+    "@vueuse/math": "^13.0.0",
+    "classnames": "^2.5.1",
+    "howler": "^2.2.4",
+    "html-to-image": "^1.11.13",
+    "lodash": "^4.17.21",
+    "md5": "^2.3.0",
+    "node-fetch": "^3.3.2",
+    "pinia": "^3.0.1",
+    "qrcode": "^1.5.4",
+    "vue-router": "4"
   }
 }

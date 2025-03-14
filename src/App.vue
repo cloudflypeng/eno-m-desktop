@@ -1,49 +1,126 @@
-<script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+<!-- eslint-disable no-console -->
+<script setup>
+import './styles/index.ts'
+import {useDemoStore} from './blbl/demoStore.ts'
+import { ref, onMounted, provide, computed, watch, nextTick, onBeforeMount, onBeforeUnmount, onUnmounted } from 'vue'
+// 第三方库
+import { useLocalStorage } from '@vueuse/core'
+import router from './router'
+
+// 组件
+import Play from './components/Play/Play.vue'
+import Sider from './components/Sider.vue'
+import WallpaperGen from './components/wallpaper-gen/index.vue'
+
+// 播放列表相关
+// import Playlist from './playlist/index.vue'
+// import AddSong from './playlist/AddSong.vue'
+
+// 页面
+// import About from './pages/About.vue'
+// import Setting from './pages/Setting.vue'
+// import Home from './pages/Home/index.vue'
+// import Search from './pages/Search.vue'
+// import ListenLater from './pages/ListenLater.vue'
+// import SingerList from './pages/Singer/SingerList.vue'
+// import SingerDetail from './pages/Singer/SingerDetail.vue'
+
+// API 和 Store
+// import { useBlblStore } from './blbl/store.ts'
+// import { usePlaylistStore } from './playlist/store'
+// import { getUserInfo } from './api'
+
+// const store = useBlblStore()
+// const PLstore = usePlaylistStore()
+// const CST = useLocalStorage('cookieSetTime', 0)
+const userInfo = ref({})
+
+onMounted(() => {
+
+})
+provide('userInfo', userInfo)
 </script>
 
 <template>
-  <div>
-    <a href="https://www.electronjs.org/" target="_blank">
-      <img src="./assets/electron.svg" class="logo electron" alt="Electron logo" />
-    </a>
-    <a href="https://vitejs.dev/" target="_blank">
-      <img src="./assets/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
-  </div>
-  <HelloWorld msg="Electron + Vite + Vue" />
-  <div class="flex-center">
-    Place static files into the <code>/public</code> folder
-    <img style="width: 2.4em; margin-left: .4em;" src="/logo.svg" alt="Logo">
-  </div>
+  <main
+    class="
+    bg-$eno-bg
+    color-$eno-text-1 no-scroll" h-screen w-screen overflow="hidden" flex
+  >
+    <!-- <AddSong /> -->
+    <Sider />
+    <div class="grow-1 shrink-10 h-screen fadeInWrapper">
+      <router-view></router-view>
+    </div>
+    <!-- <Play /> -->
+    <!-- <WallpaperGen /> -->
+  </main>
 </template>
 
 <style>
-.flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.no-scroll {
+  overflow: hidden;
+  overscroll-behavior: none;  /* 防止滚动链接/弹性效果 */
+  touch-action: none;         /* 防止移动端的触摸滚动 */
+  -webkit-overflow-scrolling: auto;  /* 禁用 iOS 的弹性滚动 */
+  position: fixed;            /* 可选：完全固定位置 */
+  width: 100%;
+  height: 100%;
+}
+html {
+  background: #000;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+*::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: #1a1a1a;
+    border-radius: 3px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    cursor: pointer;
+    background: #333;
+    border-radius: 3px;
+
+    &:hover {
+      background: #444;
+    }
+  }
+
+img {
+  position: relative;
+
+  &::before {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-image: url("/assets/broken-image.png");
+    background-size: 25px;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
 }
 
-.logo.electron:hover {
-  filter: drop-shadow(0 0 2em #9FEAF9);
+.fadeInWrapper>* {
+  animation: fadeIn 0.5s;
 }
 
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+.fadeItem {
+  animation: fadeIn 0.5s;
 }
 
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 </style>
