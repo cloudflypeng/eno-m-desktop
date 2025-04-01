@@ -32,7 +32,7 @@
     "@unocss/reset": "66.1.0-beta.5",
     "@vitejs/plugin-vue": "^5.2.1",
     "electron": "^35.0.1",
-    "electron-builder": "^25.1.8",
+    "electron-builder": "^26.0.12",
     "typescript": "^5.8.2",
     "unocss": "66.1.0-beta.5",
     "unplugin-auto-import": "^19.1.1",
