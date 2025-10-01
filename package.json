@@ -27,7 +27,7 @@
   "devDependencies": {
     "@types/lodash": "^4.17.16",
     "@unocss/preset-attributify": "66.1.0-beta.5",
-    "@unocss/preset-icons": "66.1.0-beta.5",
+    "@unocss/preset-icons": "66.5.2",
     "@unocss/preset-uno": "66.1.0-beta.5",
     "@unocss/reset": "66.1.0-beta.5",
     "@vitejs/plugin-vue": "^5.2.1",
