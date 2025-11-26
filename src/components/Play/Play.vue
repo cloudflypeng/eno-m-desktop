@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, inject } from 'vue'
 // 第三方库
 import { useLocalStorage } from '@vueuse/core'
 import { Howl } from 'howler'
@@ -17,13 +17,15 @@ import LoopSwitch from './LoopSwitch.vue'
 
 // hooks & utils
 import useControl from './keys'
-import NewDrawer from '~/components/drawer/drawer.vue'
 // @ts-ignore
 import { invokeBiliApi, BLBL } from '~/api/bili'
 
 const PLstore = usePlaylistStore()
 const eqStore = useEqStore()
 const store = useBlblStore()
+
+// 注入全局播放列表控制
+const showPlaylist = inject('showPlaylist')
 
 onMounted(() => {
   // 注册系统媒体会话
@@ -44,7 +46,7 @@ function getUpUrl(obj) {
 }
 
 const isPlaying = ref(false)
-const showList = ref(false)
+// const showList = ref(false) // 移除本地状态
 const historyList = ref([])
 const progress = reactive({
   percent: 0,
@@ -244,12 +246,21 @@ function changeProgress(e) {
   // 如果当前没有歌曲,就返回
   if (!store.play?.id)
     return
+  // 如果是 input 事件（拖动中），只更新 isDragging，不seek
+  if (e.type === 'input') {
+    isDragging.value = true
+    return
+  }
+  
   store.howl.seek(progress.total * e.target.value)
   isDragging.value = false
 }
 
 function toggleList() {
-  showList.value = !showList.value
+  // showList.value = !showList.value
+  if (showPlaylist) {
+    showPlaylist.value = !showPlaylist.value
+  }
 }
 
 function deleteSong(index) {
@@ -286,7 +297,10 @@ const progressTrans = computed(() => {
   }
 })
 function handleChangeVoice(e) {
-  store.howl.volume(e.target.value)
+  // 确保 store.howl 存在，防止报错
+  if (store.howl) {
+    store.howl.volume(e.target.value)
+  }
   voice.value = e.target.value
 }
 // 设置打开声音和静音
@@ -330,100 +344,107 @@ watch(() => eqStore.currentPreset, () => {
 </script>
 
 <template>
-  <!-- 增加一个背景图 -->
-  <section
-    class="w-screen h-20 flex z-10"
-    pos="fixed bottom-0 left-0" gap-6 transform-gpu
-  >
-    <img v-if="store.play" :src="store.play.cover" class="absolute w-screen h-20 bottom-0 object-cover">
-    <div class="flex color-white w-screen px-6 bg-$eno-elevated " style="backdrop-filter: var(--eno-filter-glass-light-1)" flex="row items-center justify-between">
-      <!-- 音乐进度 -->
-      <div class="w-screen top-0 left-0 absolute h-[2px] bg-yellow" :style="progressTrans" />
-      <!-- 音乐滑块 -->
-      <input
-        v-model="progress.percent" type="range" min="0" max="1" step="0.001"
-        class="w-full absolute top-0 left-0 h-1 bg-$eno-fill-2 rounded-1 cursor-pointer play-progress"
-        @input="isDragging = true" @change="changeProgress"
-      >
-      <!-- 音乐控制 -->
-      <div flex flex-row items-center text-2xl gap-10 w-100>
-        <div
-          cursor-pointer class="i-tabler:player-track-prev-filled w-1em h-1em hover:opacity-50"
-          @click.stop="change('prev')"
-        />
-        <div
-          v-if="isPlaying" cursor-pointer text-3xl class="i-tabler:player-pause-filled w-1em h-1em hover:opacity-50"
-          @click.stop="playControl"
-        />
-        <div
-          v-else cursor-pointer text-3xl class="i-tabler:player-play-filled w-1em h-1em hover:opacity-50"
-          @click.stop="playControl"
-        />
-        <div
-          cursor-pointer class="i-tabler:player-track-next-filled w-1em h-1em hover:opacity-50"
-          @click.stop="change('next')"
-        />
-        <LoopSwitch />
-        <div text-xs>
-          {{ timeDisplay.current }}/{{ timeDisplay.total }}
+  <section class="flex flex-col w-full h-full bg-black text-[#b3b3b3]">
+    <div class="flex h-full items-center justify-between px-4 gap-4">
+      <!-- 左侧信息区 -->
+      <div class="flex items-center gap-4 w-[30%] min-w-[200px]">
+        <div class="relative group cursor-pointer" @click.stop="changeVideoMode">
+          <img v-if="store.play.cover" :src="store.play.cover" class="w-14 h-14 rounded object-cover bg-[#282828]">
+          <div v-else class="w-14 h-14 rounded bg-[#282828] flex items-center justify-center">
+            <div class="i-mingcute:music-2-fill text-2xl" />
+          </div>
+          <!-- 展开视频图标 -->
+          <div class="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center rounded">
+            <div class="i-mingcute:arrow-up-circle-fill text-2xl text-white" />
+          </div>
+        </div>
+        
+        <div class="flex flex-col overflow-hidden">
+          <div class="text-white text-sm truncate hover:underline cursor-pointer" v-html="displayData.title" />
+          <div class="text-xs truncate hover:text-white cursor-pointer hover:underline">
+            {{ store.play.author }}
+          </div>
+        </div>
+        
+        <div class="flex gap-3 pl-2">
+          <div 
+            class="i-mingcute:heart-line hover:text-white cursor-pointer text-lg" 
+            @click.stop="PLstore.startAddSong(store.play)" 
+          />
         </div>
       </div>
-      <!-- 播放信息 -->
-      <div
-        flex flex-row items-center gap-4 text-left truncate rounded-2 backdrop-blur px-3 py-1
-        class="bg-$eno-fill-dark-1 w-1/3 min-w-120 h-[calc(100%-16px)]"
-      >
-        <!-- 主要信息 -->
-        <span
-          v-if="store.play.cover"
-          relative shrink-0 cursor-pointer
-          class="group"
-          @click.stop="changeVideoMode"
-        >
-          <img h-11 rounded-1 :src="store.play.cover">
-          <div
-            w-full h-full
-            absolute top-0 left-0
-            bg="black/30"
-            justify-center items-center
-            hidden
-            group-hover:flex
+
+      <!-- 中间控制区 -->
+      <div class="flex flex-col items-center w-[40%] max-w-[722px] gap-1">
+        <div class="flex items-center gap-6 text-xl mb-1">
+          <LoopSwitch />
+          <div class="i-mingcute:skip-previous-fill hover:text-white cursor-pointer" @click.stop="change('prev')" />
+          
+          <div 
+            class="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform cursor-pointer"
+            @click.stop="playControl"
           >
-            <i i-mingcute:arrows-up-fill text-2xl color-gray-300 :class="cn({ 'rotate-180': store.videoMode === VIDEO_MODE.FLOATING })" />
+            <div v-if="isPlaying" class="i-mingcute:pause-fill text-xl" />
+            <div v-else class="i-mingcute:play-fill text-xl pl-0.5" />
           </div>
-        </span>
-        <div truncate grow-1>
-          <div v-html="displayData.title" />
-          <span>{{ store.play.author }}{{ store.play.description }}</span>
+
+          <div class="i-mingcute:skip-forward-fill hover:text-white cursor-pointer" @click.stop="change('next')" />
+          <div class="i-mingcute:repeat-one-line hover:text-white cursor-pointer text-lg opacity-0" /> <!-- 占位 -->
         </div>
-        <div flex gap-2 text-sm px-2>
-          <!-- <div hidden class="i-mingcute:download-3-fill w-1em h-1em cursor-pointer" @click.stop="download(store.play)" /> -->
-          <div class="i-mingcute:star-fill w-1em h-1em cursor-pointer" @click.stop="PLstore.startAddSong(store.play)" />
-          <div class="i-mingcute:information-fill w-1em h-1em cursor-pointer" @click.stop="openBlTab" />
-          <ShareCard />
+
+        <div class="flex items-center w-full gap-2 text-xs font-mono">
+          <span class="min-w-[40px] text-right">{{ timeDisplay.current }}</span>
+          <div class="group relative flex-1 h-1 bg-[#4d4d4d] rounded-full cursor-pointer">
+            <div 
+              class="absolute top-0 left-0 h-full bg-white rounded-full group-hover:bg-green-500" 
+              :style="{ width: `${progress.percent * 100}%` }"
+            />
+            <!-- 滑块 -->
+            <div 
+              class="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow pointer-events-none"
+              :style="{ left: `${progress.percent * 100}%`, marginLeft: '-6px' }"
+            />
+            <input
+              v-model="progress.percent" 
+              type="range" 
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+              min="0" max="1" step="0.001" 
+              @input="changeProgress" 
+              @change="changeProgress"
+            >
+          </div>
+          <span class="min-w-[40px]">{{ timeDisplay.total }}</span>
         </div>
       </div>
-      <!-- 其他 -->
-      <div flex flex-row-reverse text-lg gap-5 w-100>
-        <div
-          v-if="fullScreenStatus" cursor-pointer class="i-mingcute:fullscreen-fill w-1em h-1em"
-          @click.stop="fullScreenTheBody"
+
+      <!-- 右侧功能区 -->
+      <div class="flex items-center justify-end gap-3 w-[30%] min-w-[200px]">
+        <div 
+          :class="cn('i-mingcute:playlist-fill cursor-pointer text-lg transition-colors', showPlaylist ? 'text-[#1db954]' : 'hover:text-white')" 
+          @click="toggleList" 
         />
-        <div v-else cursor-pointer class="i-mingcute:fullscreen-exit-fill w-1em h-1em" @click.stop="fullScreenTheBody" />
-        <div cursor-pointer class="i-tabler:playlist w-1em h-1em" @click="toggleList" />
-        <NewDrawer :open="showList" title="播放列表" position="right" class="w-100" @visible-change="vis => showList = vis">
-          <div class="w-100">
-            <SongItem v-for="(song, index) in store.playList" :key="song.id" show-active del :song="song" size="mini" @delete-song="deleteSong(index)" />
+        
+        <div class="flex items-center gap-2 w-32 group">
+          <div v-if="isCloseVoice" class="i-mingcute:volume-mute-line text-lg" @click="setVoice" />
+          <div v-else class="i-mingcute:volume-line text-lg" @click="setVoice" />
+          
+          <div class="flex-1 h-1 bg-[#4d4d4d] rounded-full cursor-pointer relative" @click="handleChangeVoice">
+            <div class="absolute top-0 left-0 h-full bg-white rounded-full group-hover:bg-green-500" :style="{ width: `${voice * 100}%` }" />
+             <input
+              v-if="!isCloseVoice" 
+              v-model="voice" 
+              type="range" 
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+              min="0" max="1" step="0.01" 
+              @change="handleChangeVoice"
+            >
           </div>
-        </NewDrawer>
-        <div v-if="isCloseVoice" cursor-pointer class="i-mingcute:volume-mute-line w-1em h-1em" @click.stop="setVoice" />
-        <div v-else cursor-pointer class="i-mingcute:volume-line w-1em h-1em" @click.stop="setVoice" />
-        <input
-          v-if="!isCloseVoice" id="voice-progress" v-model="voice" type="range" class="w-20" min="0" max="1"
-          step="0.01" @change="handleChangeVoice"
-        >
+        </div>
+
+        <div class="i-mingcute:fullscreen-line hover:text-white cursor-pointer text-lg" @click="fullScreenTheBody" />
       </div>
     </div>
+
     <Video
       v-if="store.videoMode !== VIDEO_MODE.HIDDEN"
       :is-playing="isPlaying"
@@ -432,67 +453,18 @@ watch(() => eqStore.currentPreset, () => {
   </section>
 </template>
 
-<style>
-input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
+<style scoped>
+/* 移除默认的 range input 样式，使用自定义样式 */
+input[type=range] {
+  -webkit-appearance: none; 
+  background: transparent; 
   cursor: pointer;
+  z-index: 20;
 }
-
-input[type="range"]::-webkit-slider-runnable-track {
-  height: 2px;
-  border-radius: 1px;
-  border: none;
-  outline: none;
-}
-
-input[type="range"]::-webkit-slider-thumb {
+input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;
-  height: 20px;
-  width: 20px;
-  margin-top: -6px;
-  /* Thumb の位置を調整 */
-  background-color: #4cabe2;
-  border-radius: 50%;
-}
-
-input[type="range"]::-moz-range-track {
-  opacity: 0.5;
-  background: yellow;
-  height: 2px;
-  border-radius: 1px;
-  border: none;
-  outline: none;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: yellow;
-  cursor: pointer;
-  border: none;
-  outline: none;
-  margin-top: -4px;
-  position: relative;
-}
-
-input[type="range"]::-webkit-slider-thumb:hover {
-  box-shadow: 0px 0px 0px 8px rgba(200, 200, 20, 0.16);
-  transition: 0.3s ease-in-out;
-}
-
-#voice-progress {
-  background: #4cabe2;
-  height: 2px;
-  transform: translateY(8px);
-}
-
-.transItem {
-  transition: all 0.3s;
+  height: 12px;
+  width: 12px;
+  opacity: 0;
 }
 </style>

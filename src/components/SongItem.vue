@@ -1,11 +1,12 @@
 <script setup>
-import { computed, defineProps } from 'vue'
+import { computed } from 'vue'
 import cn from 'classnames'
 import { useBlblStore } from '../blbl/store.ts'
 import { usePlaylistStore } from '../playlist/store.ts'
 // @ts-ignore
 import { invokeBiliApi, BLBL } from '~/api/bili'
 import Message from '~/components/message'
+import { useRouter } from 'vue-router'
 
 const props = defineProps({
   song: {
@@ -37,9 +38,8 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  class: String
 })
-
-import { useRouter } from 'vue-router'
 
 const emit = defineEmits(['delete-song'])
 
@@ -66,16 +66,18 @@ const isPlaying = computed(() => {
 const styleBySize = computed(() => {
   if (props.size === 'mini') {
     return {
-      wrapper: `grid-cols-[5.5rem_1fr_90px]`,
-      title: 'text-[12px] font-bold w-full truncate',
-      img: 'h-11 rounded-2 object-cover',
+      wrapper: `grid-cols-[3.5rem_1fr_auto] gap-3`,
+      title: 'text-sm font-medium w-full truncate text-white',
+      img: 'h-10 w-10 rounded object-cover',
+      author: 'text-xs text-gray-400 truncate'
     }
   }
   else {
     return {
-      wrapper: `grid-cols-[5.5rem_1fr_90px]`,
-      title: 'text-[16px] font-bold truncate ',
-      img: 'h-11 rounded-2 object-cover',
+      wrapper: `grid-cols-[3.5rem_1fr_auto] gap-4`,
+      title: 'text-base font-medium truncate text-white',
+      img: 'h-12 w-12 rounded object-cover',
+      author: 'text-sm text-gray-400 truncate'
     }
   }
 })
@@ -133,28 +135,36 @@ function handleSingerDetail(singerMid) {
 </script>
 
 <template>
-  <div :class="cn('song-item text-lg h-15 hov-item pr-5', styleBySize.wrapper)" @click="handleClick">
-    <img :src="cover" :class="styleBySize.img">
-    <div class="w-full overflow-auto" :title="title">
-      <div class="h-15 pt-1">
-        <div :class="styleBySize.title" v-html="title" />
-        <div :class="styleBySize.author" class="flex gap-2">
-          <span v-if="pages">是合集</span>
-          <span v-if="isPlaying">
-            <div class="i-svg-spinners:bars-scale w-1em h-1em text-[#fffb00]" />
-          </span>
-          <!-- {{ JSON.stringify(song) }} -->
-          <span class="text-xs opacity-50 hover:border-b-2 border-gray-200" @click.stop="handleSingerDetail(mid)">
-            {{ author }}
-          </span>
-        </div>
+  <div 
+    :class="cn('song-item h-16 px-2 rounded-md hover:bg-white/10 cursor-pointer transition-colors group', styleBySize.wrapper, props.class)" 
+    @click="handleClick"
+  >
+    <div class="relative">
+      <img :src="cover" :class="styleBySize.img">
+      <div v-if="isPlaying" class="absolute inset-0 bg-black/40 flex items-center justify-center rounded">
+         <div class="i-svg-spinners:bars-scale w-4 h-4 text-[#1db954]" />
       </div>
     </div>
-    <!-- 操作, 收藏到播放列表, 删除 -->
-    <div class="flex gap-3 text-lg justify-end">
-      <div v-if="later" hover:opacity-70 class="i-mingcute:time-fill w-1em h-1em" @click.stop="addToLater" />
-      <div v-if="star" hover:opacity-70 class="i-mingcute:star-fill w-1em h-1em" @click.stop="PLstore.startAddSong(props.song)" />
-      <div v-if="del" hover:opacity-70 class="i-mingcute:delete-3-fill w-1em h-1em" @click.stop="emit('delete-song', props.song)" />
+    
+    <div class="flex flex-col overflow-hidden justify-center h-full">
+      <div :class="styleBySize.title" v-html="title" />
+      <div class="flex items-center gap-2 mt-0.5">
+        <span v-if="pages" class="bg-[#282828] text-[10px] px-1 rounded text-gray-300">合集</span>
+        <span 
+          :class="styleBySize.author" 
+          class="hover:text-white hover:underline"
+          @click.stop="handleSingerDetail(mid)"
+        >
+          {{ author }}
+        </span>
+      </div>
+    </div>
+
+    <!-- 操作 -->
+    <div class="flex items-center gap-4 text-lg text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity pr-2">
+      <div v-if="later" class="i-mingcute:time-line hover:text-white" title="稍后播放" @click.stop="addToLater" />
+      <div v-if="star" class="i-mingcute:heart-line hover:text-white" title="收藏" @click.stop="PLstore.startAddSong(props.song)" />
+      <div v-if="del" class="i-mingcute:delete-2-line hover:text-red-500" title="删除" @click.stop="emit('delete-song', props.song)" />
     </div>
   </div>
 </template>
@@ -162,12 +172,6 @@ function handleSingerDetail(singerMid) {
 <style scoped>
 .song-item {
   display: grid;
-  /* 左右固定, 中间展开 */
-  /* grid-template-columns: 100px 1fr 60px; */
-  overflow: hidden;
-  /* 子元素上下居中 */
   align-items: center;
-  flex-shrink: 0;
-  transition: all 0.3s;
 }
 </style>

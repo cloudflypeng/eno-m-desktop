@@ -4,6 +4,7 @@ import { usePlaylistStore } from '../playlist/store'
 import { useBlblStore } from '../blbl/store'
 
 import { useRouter } from 'vue-router'
+import { computed } from 'vue'
 
 const props = defineProps({
   singerMid: String,
@@ -11,10 +12,15 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  shape: {
+  // 'card' | 'list' | 'simple'
+  type: {
     type: String,
-    default: 'circle',
+    default: 'card'
   },
+  class: {
+    type: String,
+    default: ''
+  }
 })
 const router = useRouter()
 const store = useBlblStore()
@@ -24,7 +30,7 @@ const avatar = computed(() => info.value?.face || '')
 const name = computed(() => info.value?.name || '')
 const desc = computed(() => {
   const { name } = info.value?.nameplate || {}
-  return `${name || '暂无'}`
+  return `${name || 'Artist'}`
 })
 
 function handleSingerDetail(singerMid) {
@@ -34,34 +40,73 @@ function handleSingerDetail(singerMid) {
 </script>
 
 <template>
+  <!-- Card Style (Spotify 风格卡片) -->
   <div
-    class="flex flex-shrink-0 items-center justify-between
-     w-80 h-20 rounded-lg px-4
-     bg-$eno-elevated/80 backdrop-blur-sm
-     shadow-sm border-b-0
-     transition-all duration-300 ease-in-out
-     hover:shadow-md
-     hover:translate-y-[-2px]
-     hover:border-b-2
-     border-blue-500
-     cursor-pointer group
-    "
+    v-if="type === 'card'"
+    :class="cn(
+      'flex flex-col items-center p-4 rounded-md bg-[#181818] hover:bg-[#282828] transition-all duration-300 cursor-pointer group w-40 flex-shrink-0',
+      props.class
+    )"
     @click.stop="handleSingerDetail(singerMid)"
   >
-    <!-- 左侧信息区域 -->
+    <div class="relative w-full aspect-square mb-4 shadow-lg rounded-md overflow-hidden">
+      <img
+        :src="avatar"
+        alt="singerAvatar"
+        class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+      >
+      <!-- 播放按钮悬浮 (可选，如果你想直接播放歌手热门歌曲) -->
+      <div class="absolute bottom-2 right-2 w-12 h-12 bg-[#1db954] rounded-full flex items-center justify-center shadow-lg opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 hover:scale-105 hover:bg-[#1ed760] z-10">
+         <div class="i-mingcute:play-fill text-black text-2xl pl-1" />
+      </div>
+    </div>
+
+    <div class="flex flex-col w-full">
+      <div class="text-sm font-bold text-white truncate mb-1">
+        {{ name }}
+      </div>
+      <div class="text-xs text-[#a7a7a7] truncate">
+        {{ desc }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Simple List Style (侧边栏简单列表) -->
+  <div 
+    v-else-if="type === 'simple'"
+    :class="cn(
+      'flex items-center gap-3 p-2 rounded hover:bg-[#1a1a1a] cursor-pointer transition-colors group',
+      props.class
+    )"
+    @click.stop="handleSingerDetail(singerMid)"
+  >
+    <img 
+      :src="avatar" 
+      class="w-12 h-12 rounded-md object-cover"
+    >
+    <div class="flex flex-col overflow-hidden">
+      <span class="text-white font-medium truncate text-sm">{{ name }}</span>
+      <span class="text-xs text-[#a7a7a7] truncate">{{ desc }}</span>
+    </div>
+  </div>
+
+  <!-- Old List Style (兼容旧的列表样式，如果需要) -->
+  <div
+    v-else
+    :class="cn(
+      'flex flex-shrink-0 items-center justify-between w-80 h-20 rounded-lg px-4 bg-[#181818] hover:bg-[#282828] transition-all duration-300 cursor-pointer group',
+      props.class
+    )"
+    @click.stop="handleSingerDetail(singerMid)"
+  >
     <div class="flex items-center space-x-4">
       <img
         :src="avatar"
         alt="singerAvatar"
-        class="w-13 h-13 rounded-full
-          border border-gray-200/10
-          shadow-sm hover:shadow-md
-          transition duration-300
-          object-cover
-        "
+        class="w-13 h-13 rounded-full object-cover shadow-sm"
       >
       <div class="flex flex-col">
-        <div class="text-[16px] font-medium tracking-wide">
+        <div class="text-[16px] font-medium tracking-wide text-white">
           {{ name }}
         </div>
         <div class="text-[11px] text-gray-400/80 mt-0.5">
@@ -70,20 +115,12 @@ function handleSingerDetail(singerMid) {
       </div>
     </div>
 
-    <!-- 右侧操作区域 -->
     <div class="flex items-center gap-3 transition-opacity duration-200 opacity-0 group-hover:opacity-100">
       <div
         v-if="canDel"
-        class="i-mingcute:delete-line w-[18px] h-[18px]
-          cursor-pointer hover:text-red-500
-          transition-colors duration-200
-          hover:scale-110
-        "
+        class="i-mingcute:delete-line w-[18px] h-[18px] text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
         @click.stop="PLstore.removeSinger(singerMid)"
       />
     </div>
   </div>
 </template>
-
-<style scoped>
-</style>

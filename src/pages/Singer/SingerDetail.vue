@@ -1,5 +1,6 @@
 <script setup>
 import { useInfiniteScroll } from '@vueuse/core'
+import { computed, ref, watch } from 'vue'
 
 import SongItem from '~/components/SongItem.vue'
 import { getUserArc } from '~/api'
@@ -78,126 +79,99 @@ function startExportPoster() {
 </script>
 
 <template>
-  <section class="h-screen singer-detail relative">
-    <img
-      :src="info?.face"
-      class="w-full object-cover absolute top-0 left-0 opacity-10 -z-1"
-    >
-    <!-- 信息界面 -->
-    <div class="singer-header relative">
-      <div
-        class="i-mingcute:square-arrow-left-line absolute top-3 left-3 text-4xl cursor-pointer hover:opacity-70 transition-opacity"
-        @click.stop="$router.back()"
-      />
-      <div class="flex items-center gap-8">
-        <img
-          :src="info?.face"
-          class="h-32 w-32 object-cover rounded-full border-3 border-white/30 shadow-lg hover:scale-105 transition-transform cursor-pointer"
-        >
-        <div class="flex flex-col gap-2">
-          <div class="flex items-center gap-4">
-            <h1 class="text-3xl font-bold">
-              {{ info?.name }}
-            </h1>
-            <a
-              :href="`https://space.bilibili.com/${PLstore.currentSinger}`"
-              target="_blank"
-              class="hover:opacity-70 transition-opacity"
-            >
-              <div class="i-mingcute:link-line w-5 h-5" />
-            </a>
-          </div>
-          <div class="text-lg font-medium opacity-85">
-            {{ info?.nameplate?.name }}
-          </div>
-          <div class="text-sm opacity-70">
-            {{ info?.nameplate?.condition }}
-          </div>
+  <section class="w-full h-full overflow-y-auto scrollbar-styled bg-[#121212] relative" ref="scrollRef">
+    <!-- 顶部背景 -->
+    <div class="absolute top-0 left-0 w-full h-[300px] bg-gradient-to-b from-[#535353] to-[#121212] z-0 pointer-events-none"></div>
+
+    <!-- 信息头 -->
+    <div class="relative z-10 px-8 pt-6 flex items-end gap-6 pb-6">
+      <img
+        :src="info?.face"
+        class="h-52 w-52 object-cover rounded-full shadow-2xl"
+      >
+      <div class="flex flex-col gap-2 mb-2 text-white">
+        <div class="flex items-center gap-2 text-sm font-bold uppercase">
+          <div class="i-mingcute:certificate-fill text-blue-400" v-if="info?.official?.role"></div>
+          <span>{{ info?.official?.title || 'Verified Artist' }}</span>
+        </div>
+        <h1 class="text-7xl font-black tracking-tighter">
+          {{ info?.name }}
+        </h1>
+        <div class="flex items-center gap-4 text-sm font-medium mt-4">
+           <span>{{ page.count }} 首歌曲</span>
+           <a 
+             :href="`https://space.bilibili.com/${PLstore.currentSinger}`" 
+             target="_blank"
+             class="hover:underline opacity-80 hover:opacity-100 flex items-center gap-1"
+           >
+              Bilibili 主页 <div class="i-mingcute:external-link-line"></div>
+           </a>
         </div>
       </div>
     </div>
 
     <!-- 操作栏 -->
-    <div class="control-bar">
+    <div class="sticky top-0 z-20 bg-[#121212] px-8 py-4 flex items-center justify-between">
       <div class="flex items-center gap-6">
-        <h2 class="text-lg font-bold">
-          投稿作品
-        </h2>
-        <button
-          class="play-all-btn"
-          @click="handlePlayUser"
-        >
-          <div class="i-mingcute:play-fill mr-1" />
-          播放全部
-        </button>
-        <div class="flex items-center gap-2 text-sm opacity-70">
-          <span class="text-lg font-bold">{{ page.count }}</span>
-          首歌曲
-        </div>
-        <button
-          class="poster-btn"
+        <div 
+           class="w-14 h-14 rounded-full bg-[#1db954] flex items-center justify-center shadow-lg cursor-pointer hover:scale-105 hover:bg-[#1ed760] transition-all"
+           @click="handlePlayUser"
+         >
+            <div class="i-mingcute:play-fill text-black text-3xl pl-1"></div>
+         </div>
+         
+         <button
+          class="px-4 py-1.5 rounded-full border border-[#727272] hover:border-white text-sm font-bold hover:scale-105 transition-all text-white uppercase tracking-wider"
           @click="startExportPoster"
         >
-          <div class="i-mingcute:image-line mr-1" />
-          制作歌单海报
+          Export Poster
         </button>
+
+        <div class="i-mingcute:more-2-fill text-3xl text-[#b3b3b3] hover:text-white cursor-pointer transition-colors"></div>
       </div>
 
-      <!-- 搜索框 -->
-      <div class="search-wrapper">
-        <div class="i-mingcute:search-line absolute left-3 top-1/2 -translate-y-1/2 opacity-50" />
+      <!-- 搜索 -->
+      <div class="relative group">
+        <div class="i-mingcute:search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-white z-10" />
         <input
           v-model="keyword"
           placeholder="搜索歌曲"
           type="text"
-          class="search-input"
+          class="w-48 h-9 pl-9 pr-4 rounded-full bg-[#282828] hover:bg-[#2a2a2a] focus:bg-[#333] text-sm text-white outline-none transition-all placeholder:text-gray-500"
           @keyup.enter="getSongs({ mid: PLstore.currentSinger, keyword })"
         >
       </div>
     </div>
 
     <!-- 歌曲列表 -->
-    <div ref="scrollRef" class="song-list">
-      <div class="pb-30 flex flex-col gap-3">
-        <SongItem v-for="song in renderList" :key="song.id" :song="song" />
+    <div class="px-8 pb-10">
+      <h2 class="text-2xl font-bold text-white mb-4">热门歌曲</h2>
+      <div class="flex flex-col">
+         <div class="grid grid-cols-[auto_1fr_1fr_auto] gap-4 text-[#b3b3b3] text-sm border-b border-[#ffffff1a] pb-2 mb-4 px-4">
+            <div class="text-center w-8">#</div>
+            <div>标题</div>
+            <div>描述</div>
+            <div class="i-mingcute:time-line text-lg"></div>
+         </div>
+         <SongItem 
+           v-for="(song, index) in renderList" 
+           :key="song.id" 
+           :song="song" 
+           class="hover:bg-[#ffffff1a] rounded-md px-2"
+         >
+         </SongItem>
       </div>
-      <Loading v-if="loading && !renderList.length" />
+      <Loading v-if="loading && !renderList.length" class="mt-10" />
     </div>
   </section>
 </template>
 
 <style scoped>
-.singer-detail {
+/* 自定义 SongItem 样式覆盖 */
+:deep(.song-item) {
   display: grid;
-  grid-template-rows: auto 64px 1fr;
-}
-
-.singer-header {
-  @apply w-full px-10 pt-5 pb-0;
-}
-
-.control-bar {
-  @apply w-full px-10 py-2 flex justify-between items-center border-b border-gray-800;
-}
-
-.play-all-btn {
-  @apply flex items-center text-base font-bold bg-yellow/90 hover:bg-yellow px-4 py-2 rounded-full transition-colors;
-}
-
-.poster-btn {
-  @apply flex items-center text-base font-medium px-4 py-2 rounded-full hover:bg-gray-100 transition-colors;
-}
-
-.search-wrapper {
-  @apply relative;
-}
-
-.search-input {
-  @apply w-48 h-10 pl-10 pr-4 rounded-full bg-gray-800/70 hover:bg-gray-800 focus:bg-gray-800
-    transition-colors outline-none placeholder:text-sm;
-}
-
-.song-list {
-  @apply h-full overflow-auto px-10;
+  grid-template-columns: auto 1fr 1fr auto;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
 }
 </style>

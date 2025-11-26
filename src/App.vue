@@ -1,116 +1,152 @@
 <!-- eslint-disable no-console -->
 <script setup>
 import './styles/index.ts'
-import {useDemoStore} from './blbl/demoStore.ts'
-import { ref, onMounted, provide, computed, watch, nextTick, onBeforeMount, onBeforeUnmount, onUnmounted } from 'vue'
-// 第三方库
-import { useLocalStorage } from '@vueuse/core'
-import router from './router'
-
-// 组件
+import { ref, onMounted, provide } from 'vue'
 import Play from './components/Play/Play.vue'
 import Sider from './components/Sider.vue'
-// import WallpaperGen from './components/wallpaper-gen/index.vue'
+import Header from './components/Header.vue'
+import SongItem from './components/SongItem.vue'
+import { useBlblStore } from './blbl/store'
 
-// 播放列表相关
-// import Playlist from './playlist/index.vue'
-// import AddSong from './playlist/AddSong.vue'
-
-// 页面
-// import About from './pages/About.vue'
-// import Setting from './pages/Setting.vue'
-// import Home from './pages/Home/index.vue'
-// import Search from './pages/Search.vue'
-// import ListenLater from './pages/ListenLater.vue'
-// import SingerList from './pages/Singer/SingerList.vue'
-// import SingerDetail from './pages/Singer/SingerDetail.vue'
-
-// API 和 Store
-// import { useBlblStore } from './blbl/store.ts'
-// import { usePlaylistStore } from './playlist/store'
-// import { getUserInfo } from './api'
-
-// const store = useBlblStore()
-// const PLstore = usePlaylistStore()
-// const CST = useLocalStorage('cookieSetTime', 0)
 const userInfo = ref({})
+const store = useBlblStore()
+
+// 播放列表显隐状态（可以由Play组件或全局控制）
+const showPlaylist = ref(false)
+
+// 提供给 Play 组件修改
+provide('showPlaylist', showPlaylist)
 
 onMounted(() => {
 
 })
 provide('userInfo', userInfo)
+
+function deleteSong(index) {
+  store.playList.splice(index, 1)
+}
 </script>
 
 <template>
-  <main
-    class="
-    bg-$eno-bg
-    color-$eno-text-1 no-scroll" h-screen w-screen overflow="hidden" flex
-  >
-    <!-- <AddSong /> -->
-    <Sider />
-    <div class="grow-1 shrink-10 h-screen fadeInWrapper">
-      <router-view></router-view>
+  <main class="h-screen w-screen overflow-hidden bg-black text-[#b3b3b3] font-sans grid-layout p-2 gap-2">
+    
+    <!-- 左侧侧边栏 -->
+    <div class="grid-sider">
+      <Sider />
     </div>
-    <Play />
-    <!-- <WallpaperGen /> -->
+
+    <!-- 主内容区 -->
+    <div class="grid-main bg-[#121212] rounded-lg overflow-hidden relative flex flex-col">
+      <Header />
+      <div class="flex-1 overflow-y-auto scrollbar-styled relative">
+        <div class="fadeInWrapper min-h-full">
+          <router-view></router-view>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧播放列表 (条件渲染) -->
+    <div v-if="showPlaylist" class="grid-right-panel bg-[#121212] rounded-lg overflow-hidden flex flex-col w-[320px]">
+      <div class="p-4 font-bold text-lg text-white border-b border-[#282828] flex justify-between items-center">
+        播放列表
+        <div class="i-mingcute:close-line cursor-pointer hover:text-white text-gray-400" @click="showPlaylist = false" />
+      </div>
+      <div class="flex-1 overflow-y-auto scrollbar-styled p-2">
+         <SongItem 
+          v-for="(song, index) in store.playList" 
+          :key="song.id" 
+          show-active 
+          del 
+          :song="song" 
+          size="mini" 
+          @delete-song="deleteSong(index)" 
+          class="hover:bg-[#282828] rounded"
+        />
+      </div>
+    </div>
+
+    <!-- 底部播放栏 -->
+    <div class="grid-player h-[72px] z-50">
+      <Play />
+    </div>
+
   </main>
 </template>
 
 <style>
-.no-scroll {
-  overflow: hidden;
-  overscroll-behavior: none;  /* 防止滚动链接/弹性效果 */
-  touch-action: none;         /* 防止移动端的触摸滚动 */
-  -webkit-overflow-scrolling: auto;  /* 禁用 iOS 的弹性滚动 */
-  position: fixed;            /* 可选：完全固定位置 */
-  width: 100%;
-  height: 100%;
+.grid-layout {
+  display: grid;
+  grid-template-areas:
+    "sider main right player" /* 默认状态，right 和 player 在这里有些逻辑冲突，下面会用 JS 动态控制或 CSS 调整 */
+    "sider main right player"; /* 占位 */
 }
+
+/* 动态 Grid 布局 */
+.grid-layout {
+  display: grid;
+  grid-template-areas:
+    "sider main right"
+    "player player player";
+  grid-template-columns: auto 1fr auto; /* 侧边栏 | 主内容 | 右侧栏(自动宽度) */
+  grid-template-rows: 1fr auto; /* 主体 | 播放栏 */
+}
+
+.grid-sider {
+  grid-area: sider;
+}
+
+.grid-main {
+  grid-area: main;
+}
+
+.grid-right-panel {
+  grid-area: right;
+  display: flex;
+}
+
+.grid-player {
+  grid-area: player;
+}
+
 html {
   background: #000;
 }
 
+/* 全局滚动条样式优化 */
 *::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
+  width: 8px;
+  height: 8px;
+}
 
-  *::-webkit-scrollbar-track {
-    background: #1a1a1a;
-    border-radius: 3px;
-  }
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-  *::-webkit-scrollbar-thumb {
-    cursor: pointer;
-    background: #333;
-    border-radius: 3px;
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
 
-    &:hover {
-      background: #444;
-    }
-  }
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
 
 img {
   position: relative;
+}
 
-  &::before {
-    content: "";
-    display: block;
-    width: 100%;
-    height: 100%;
-    background-image: url("/assets/broken-image.png");
-    background-size: 25px;
-    background-position: center;
-    background-repeat: no-repeat;
-  }
+img::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-image: url("/assets/broken-image.png");
+  background-size: 25px;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .fadeInWrapper>* {
-  animation: fadeIn 0.5s;
-}
-
-.fadeItem {
   animation: fadeIn 0.5s;
 }
 
@@ -118,7 +154,6 @@ img {
   from {
     opacity: 0;
   }
-
   to {
     opacity: 1;
   }

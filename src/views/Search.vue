@@ -125,37 +125,63 @@ async function handleSearch() {
 </script>
 
 <template>
-  <section w-full h-screen overflow-auto flex flex-col px-20 relative pt-10>
-    <!-- <AddCollection /> -->
-    <div class="w-[35vw] relative flex gap-3" color="$eno-text-1">
+  <section class="w-full h-full flex flex-col pt-6 px-8 bg-[#121212]">
+    <!-- 搜索输入框 -->
+    <div class="w-[364px] relative flex gap-3 mb-6 text-black">
+      <div class="absolute top-1/2 left-3 -translate-y-1/2 z-10 pointer-events-none">
+         <div class="i-mingcute:search-line text-xl text-[#121212]" />
+      </div>
       <input
-        id="search" v-model="keyword" type="text" bg="$eno-content focus:$eno-content-hover"
-        :class="cn('w-full px-8 py-2 h-12 eno-input text-lg')" placeholder="关键字 或 原视频链接" @keyup.enter="handleSearch"
+        id="search" 
+        v-model="keyword" 
+        type="text" 
+        class="w-full h-12 pl-10 pr-4 rounded-full bg-white outline-none focus:ring-2 focus:ring-white/50 transition-all placeholder:text-[#757575]" 
+        placeholder="想听什么？" 
+        @keyup.enter="handleSearch"
       >
-      <div
-        absolute right-5 text-xl class="i-tabler:search w-1em h-1em top-[50%] translate-y--1/2"
-        @click="handleSearch"
-      />
-      <Loading v-if="isLoading" />
+      <Loading v-if="isLoading" class="absolute right-4 top-1/2 -translate-y-1/2" />
     </div>
-    <!-- {{ result }} -->
+
     <!-- 搜索结果 -->
-    <div v-if="result.length" ref="scrollRef" class="h-[calc(100vh-10rem)]" w-full overflow-auto mt-4 px-20 pb-30>
-      <SongItem v-for="item in result" :key="item.bvid" :song="item" check-pages />
+    <div 
+      v-if="result.length" 
+      ref="scrollRef" 
+      class="flex-1 w-full overflow-y-auto scrollbar-styled pb-8"
+    >
+      <div class="grid grid-cols-[auto_1fr_1fr_auto] gap-4 text-[#b3b3b3] text-sm border-b border-[#ffffff1a] pb-2 mb-4 px-4 sticky top-0 bg-[#121212] z-10">
+        <div class="text-center w-8">#</div>
+        <div>标题</div>
+        <div>UP主</div>
+        <div class="i-mingcute:time-line text-lg"></div>
+      </div>
+
+      <SongItem 
+        v-for="(item, index) in result" 
+        :key="item.bvid" 
+        :song="item" 
+        check-pages 
+        class="hover:bg-[#ffffff1a] rounded-md px-2"
+      />
     </div>
-    <!-- 搜索指南 -->
-    <!-- <div v-else class="w-full text-lg pt-10">
-      <ul>
-        <ol>
-          1. 输入关键字
-        </ol>
-        <ol>
-          2. 输入原视频链接
-        </ol>
-        <ol>
-          2. 分 P 视频可以直接保存成 eno 歌单
-        </ol>
-      </ul>
-    </div> -->
+
+    <!-- 初始状态/空状态 -->
+    <div v-else class="flex-1 flex flex-col items-center justify-center text-[#b3b3b3] gap-4">
+      <div class="i-mingcute:music-2-fill text-6xl opacity-50"></div>
+      <div class="text-center">
+        <h3 class="font-bold text-white mb-2">搜索 Bilibili 视频或音频</h3>
+        <p class="text-sm">输入关键字、BV号或视频链接即可开始</p>
+      </div>
+    </div>
   </section>
 </template>
+
+<style scoped>
+/* 自定义 SongItem 在列表中的样式适配 */
+:deep(.song-item) {
+  display: grid;
+  grid-template-columns: auto 1fr 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.5rem;
+}
+</style>
