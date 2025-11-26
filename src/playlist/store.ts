@@ -1,10 +1,8 @@
 import { defineStore } from "pinia";
 import { useLocalStorage } from "@vueuse/core";
 import { nanoid } from "nanoid";
-
-import { useApiClient } from "@/composables/api";
-
-const api = useApiClient();
+// @ts-ignore
+import { invokeBiliApi, BLBL } from "~/api/bili";
 
 export interface song {
 	id: string | number;
@@ -27,8 +25,7 @@ export const defaultSingers = [
 	"98573631", // 鹿小草
 ];
 
-export const usePlaylistStore = defineStore({
-	id: "playlist",
+export const usePlaylistStore = defineStore("playlist", {
 	state: () => ({
 		list: useLocalStorage("playlist", [] as playlist[]),
 		listenLater: useLocalStorage("listenLater", [] as song[]),
@@ -107,7 +104,7 @@ export const usePlaylistStore = defineStore({
 		fetchSingerInfo(mid: string, withCache = true) {
 			if (this.singerCardCache[mid] && withCache) return;
 			this.singerCardCache[mid] = null;
-			api.blbl.getUserInfo({ mid }).then((res) => {
+			invokeBiliApi(BLBL.GET_USER_INFO, { mid }).then((res: any) => {
 				this.singerCardCache[mid] = res.data.card;
 			});
 		},
@@ -116,7 +113,7 @@ export const usePlaylistStore = defineStore({
 			this.fetchSingerInfo(mid, false);
 		},
 		initUserPermission() {
-			api.blbl.getUserInfo({ mid: "184327681" }).then((res) => {
+			invokeBiliApi(BLBL.GET_USER_INFO, { mid: "184327681" }).then((res: any) => {
 				this.userPermission =
 					res.data.mid === "184327681" || res.data.following;
 			});
@@ -128,3 +125,4 @@ export const usePlaylistStore = defineStore({
 		},
 	},
 });
+

@@ -1,10 +1,10 @@
-import { app, BrowserWindow, shell, ipcMain } from 'electron'
-import { createRequire } from 'node:module'
+import { app, BrowserWindow, shell, ipcMain, session } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
+import { apiProxy } from '../bili/api/index'
+import { initCookie } from '../bili/cookie'
 
-const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // The built directory structure
@@ -43,6 +43,9 @@ const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
 async function createWindow() {
+  // 初始化 cookie
+  initCookie()
+  
   win = new BrowserWindow({
     title: 'Main window',
     icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
@@ -78,7 +81,23 @@ async function createWindow() {
   // win.webContents.on('will-navigate', (event, url) => { }) #344
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  createWindow()
+  // 拦截 B 站图片请求，设置 Referer 防止 403
+  session.defaultSession.webRequest.onBeforeSendHeaders({
+    urls: [
+      '*://*.hdslb.com/*',
+      '*://*.bilivideo.com/*',
+      '*://*.mcdn.bilivideo.cn/*',
+      'https://*.bilibili.com/*',
+      'https://*.bilivideo.com/*',
+      'https://*.bilivideo.cn/*',
+    ]
+  }, (details, callback) => {
+    details.requestHeaders['Referer'] = 'https://www.bilibili.com/'
+    callback({ requestHeaders: details.requestHeaders })
+  })
+})
 
 app.on('window-all-closed', () => {
   win = null
@@ -116,5 +135,15 @@ ipcMain.handle('open-win', (_, arg) => {
     childWindow.loadURL(`${VITE_DEV_SERVER_URL}#${arg}`)
   } else {
     childWindow.loadFile(indexHtml, { hash: arg })
+  }
+})
+
+ipcMain.handle('bili-api', async (_, message) => {
+  try {
+    const res = await apiProxy(message)
+    return res
+  } catch (error) {
+    console.error('Bili API invoke error:', error)
+    throw error
   }
 })

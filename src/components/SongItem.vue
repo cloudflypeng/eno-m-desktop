@@ -3,7 +3,8 @@ import { computed, defineProps } from 'vue'
 import cn from 'classnames'
 import { useBlblStore } from '../blbl/store.ts'
 import { usePlaylistStore } from '../playlist/store.ts'
-import { useApiClient } from '~/composables/api'
+// @ts-ignore
+import { invokeBiliApi, BLBL } from '~/api/bili'
 import Message from '~/components/message'
 
 const props = defineProps({
@@ -38,10 +39,11 @@ const props = defineProps({
   },
 })
 
+import { useRouter } from 'vue-router'
+
 const emit = defineEmits(['delete-song'])
 
-const api = useApiClient()
-
+const router = useRouter()
 const store = useBlblStore()
 const PLstore = usePlaylistStore()
 
@@ -84,18 +86,24 @@ async function handleClick() {
     return
   }
   // 计算分P数据
-  const item = await api.blbl.getVideoInfo({
-    bvid: props.song.bvid,
-  }).then(res => res.data)
+  try {
+    const res = await invokeBiliApi(BLBL.GET_VIDEO_INFO, {
+      bvid: props.song.bvid,
+    })
+    const item = res.data
 
-  if (item.pages.length > 1 && props.song) {
-    PLstore.openCollection = true
-    PLstore.collectionInfo = {
-      ...props.song,
-      pages: item.pages,
+    if (item.pages && item.pages.length > 1 && props.song) {
+      PLstore.openCollection = true
+      PLstore.collectionInfo = {
+        ...props.song,
+        pages: item.pages,
+      }
     }
-  }
-  else {
+    else {
+      store.startPlay(props.song)
+    }
+  } catch (error) {
+    console.error('Failed to check video info:', error)
     store.startPlay(props.song)
   }
 }
@@ -119,8 +127,8 @@ function addToLater() {
 function handleSingerDetail(singerMid) {
   if (!singerMid)
     return
-  store.mode = 'singerDetail'
   PLstore.currentSinger = singerMid
+  router.push('/singerDetail')
 }
 </script>
 

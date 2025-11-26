@@ -87,7 +87,7 @@ function startExportPoster() {
     <div class="singer-header relative">
       <div
         class="i-mingcute:square-arrow-left-line absolute top-3 left-3 text-4xl cursor-pointer hover:opacity-70 transition-opacity"
-        @click.stop="store.mode = 'singerList'"
+        @click.stop="$router.back()"
       />
       <div class="flex items-center gap-8">
         <img

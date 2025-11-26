@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import type { song } from '~/playlist/store'
-import { useApiClient } from '~/composables/api'
 import SongItem from '~/components/SongItem.vue'
+// @ts-ignore
+import { invokeBiliApi, BLBL } from '~/api/bili'
 
 import { useBlblStore } from '~/blbl/store'
 
@@ -10,7 +11,6 @@ const props = defineProps<{
 }>()
 
 const store = useBlblStore()
-const api = useApiClient()
 const pn = ref(1)
 const mediaSong = ref<song[]>([])
 const status = reactive({
@@ -42,7 +42,7 @@ async function handleClick() {
 }
 
 async function getFavDataLoop() {
-  const res = await api.blbl.getFavInfo({
+  const res = await invokeBiliApi(BLBL.GET_FAV_INFO, {
     media_id: props.fav.id,
     pn: pn.value,
   })

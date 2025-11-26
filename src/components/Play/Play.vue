@@ -18,14 +18,12 @@ import LoopSwitch from './LoopSwitch.vue'
 // hooks & utils
 import useControl from './keys'
 import NewDrawer from '~/components/drawer/drawer.vue'
-import { useApiClient } from '~/composables/api'
-// import { download } from '~/utils.ts'
+// @ts-ignore
+import { invokeBiliApi, BLBL } from '~/api/bili'
 
 const PLstore = usePlaylistStore()
 const eqStore = useEqStore()
 const store = useBlblStore()
-
-const api = useApiClient()
 
 onMounted(() => {
   // 注册系统媒体会话
@@ -135,49 +133,68 @@ function initMusic() {
   isCloseVoice.value = store.howl.volume() === 0
 }
 async function getBvidUrl(item) {
-  const { cid } = await api.blbl.getVideoInfo({
-    bvid: item.bvid,
-  }).then(res => res.data)
+  try {
+    const res = await invokeBiliApi(BLBL.GET_VIDEO_INFO, {
+      bvid: item.bvid,
+    })
+    const { cid } = res.data
 
-  const dash = await api.blbl.getAudioOfVideo({
-    cid,
-    bvid: item.bvid,
-  }).then(res => res.data.dash)
+    const dashRes = await invokeBiliApi(BLBL.GET_AUDIO_OF_VIDEO, {
+      cid,
+      bvid: item.bvid,
+    })
+    const dash = dashRes.data.dash
 
-  const url = getUpUrl(dash.audio[0])
-  const video = getUpUrl(dash.video[0])
+    const url = getUpUrl(dash.audio[0])
+    const video = getUpUrl(dash.video[0])
 
-  return {
-    ...item,
-    url,
-    video,
-    dash,
+    return {
+      ...item,
+      url,
+      video,
+      dash,
+    }
+  } catch (error) {
+    console.error('Failed to get video url:', error)
+    return item
   }
 }
 async function getCidUrl(item) {
-  const dash = await api.blbl.getAudioOfVideo({
-    cid: item.cid,
-    bvid: item.bvid,
-  }).then(res => res.data.dash)
+  try {
+    const dashRes = await invokeBiliApi(BLBL.GET_AUDIO_OF_VIDEO, {
+      cid: item.cid,
+      bvid: item.bvid,
+    })
+    const dash = dashRes.data.dash
 
-  const url = getUpUrl(dash.audio[0])
-  const video = getUpUrl(dash.video[0])
+    const url = getUpUrl(dash.audio[0])
+    const video = getUpUrl(dash.video[0])
 
-  return {
-    ...item,
-    url,
-    video,
-    dash,
+    return {
+      ...item,
+      url,
+      video,
+      dash,
+    }
+  } catch (error) {
+    console.error('Failed to get cid url:', error)
+    return item
   }
 }
 async function getSidUrl(item) {
-  const url = await api.blbl.getSong({
-    sid: item.id,
-  }).then(res => res.data.cdns[0])
+  try {
+    const res = await invokeBiliApi(BLBL.GET_SONG, {
+      sid: item.id,
+    })
+    const url = res.data.cdns[0]
 
-  return {
-    ...item,
-    url,
+    return {
+      ...item,
+      url,
+    }
+  } catch (error) {
+    console.error('Failed to get song url:', error)
+    return item
   }
 }
 
@@ -394,7 +411,7 @@ watch(() => eqStore.currentPreset, () => {
         />
         <div v-else cursor-pointer class="i-mingcute:fullscreen-exit-fill w-1em h-1em" @click.stop="fullScreenTheBody" />
         <div cursor-pointer class="i-tabler:playlist w-1em h-1em" @click="toggleList" />
-        <NewDrawer :open="showList" title="播放列表" position="right" @visible-change="vis => showList = vis">
+        <NewDrawer :open="showList" title="播放列表" position="right" class="w-100" @visible-change="vis => showList = vis">
           <div class="w-100">
             <SongItem v-for="(song, index) in store.playList" :key="song.id" show-active del :song="song" size="mini" @delete-song="deleteSong(index)" />
           </div>

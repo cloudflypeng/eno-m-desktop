@@ -46,7 +46,7 @@ const mainSong = computed(() => {
     <div class="w-full grid grid-cols-2 gap-5 px-10">
       <div class="w-full">
         <div class="w-full aspect-video rounded-md overflow-hidden">
-          <img class="w-full h-full object-cover rounded-md" :src="mainSong.cover">
+          <img v-if="mainSong" class="w-full h-full object-cover rounded-md" :src="mainSong.cover">
         </div>
       </div>
       <div class="w-full h-full overflow-auto relative">

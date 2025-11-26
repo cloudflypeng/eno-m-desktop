@@ -10,7 +10,7 @@ import router from './router'
 // 组件
 import Play from './components/Play/Play.vue'
 import Sider from './components/Sider.vue'
-import WallpaperGen from './components/wallpaper-gen/index.vue'
+// import WallpaperGen from './components/wallpaper-gen/index.vue'
 
 // 播放列表相关
 // import Playlist from './playlist/index.vue'
@@ -52,7 +52,7 @@ provide('userInfo', userInfo)
     <div class="grow-1 shrink-10 h-screen fadeInWrapper">
       <router-view></router-view>
     </div>
-    <!-- <Play /> -->
+    <Play />
     <!-- <WallpaperGen /> -->
   </main>
 </template>

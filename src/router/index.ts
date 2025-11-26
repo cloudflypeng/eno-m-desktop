@@ -5,18 +5,33 @@ const router = createRouter({
 	routes: [
 		{
 			path: "/",
-			name: "home",
-			component: () => import("../views/Home.vue"),
+			name: "index",
+			component: () => import("../views/Home/index.vue"),
 		},
 		{
 			path: "/home",
 			name: "home",
-			component: () => import("../views/Home.vue"),
+			component: () => import("../views/Home/index.vue"),
 		},
 		{
 			path: "/search",
 			name: "search",
 			component: () => import("../views/Search.vue"),
+		},
+		{
+			path: "/playlist",
+			name: "playlist",
+			component: () => import("../playlist/index.vue"),
+		},
+		{
+			path: "/singerList",
+			name: "singerList",
+			component: () => import("../pages/Singer/SingerList.vue"),
+		},
+		{
+			path: "/singerDetail",
+			name: "singerDetail",
+			component: () => import("../pages/Singer/SingerDetail.vue"),
 		},
 	],
 });

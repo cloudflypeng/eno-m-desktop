@@ -3,6 +3,8 @@ import cn from 'classnames'
 import { usePlaylistStore } from '../playlist/store'
 import { useBlblStore } from '../blbl/store'
 
+import { useRouter } from 'vue-router'
+
 const props = defineProps({
   singerMid: String,
   canDel: {
@@ -14,6 +16,7 @@ const props = defineProps({
     default: 'circle',
   },
 })
+const router = useRouter()
 const store = useBlblStore()
 const PLstore = usePlaylistStore()
 const info = computed(() => PLstore.singerCardCache[props.singerMid])
@@ -25,8 +28,8 @@ const desc = computed(() => {
 })
 
 function handleSingerDetail(singerMid) {
-  store.mode = 'singerDetail'
   PLstore.currentSinger = singerMid
+  router.push('/singerDetail')
 }
 </script>
 

@@ -2,9 +2,8 @@ import { defineStore } from "pinia";
 import { cloneDeep } from "lodash";
 import { useStorage } from "@vueuse/core";
 import type { RemovableRef } from "@vueuse/core";
-import { useApiClient } from "~/composables/api";
-
-const api = useApiClient();
+// @ts-ignore
+import { invokeBiliApi, BLBL } from "~/api/bili";
 
 export const VIDEO_MODE = {
 	FLOATING: "floating",
@@ -45,8 +44,7 @@ interface State {
 	musicRankList: RemovableRef<any[]>;
 }
 
-export const useBlblStore = defineStore({
-	id: "blbl",
+export const useBlblStore = defineStore("blbl", {
 	state: (): State => ({
 		howl: null,
 		eqService: null,
@@ -65,7 +63,9 @@ export const useBlblStore = defineStore({
 		rankDetailList: [],
 		// 热度榜单
 		hitList: useStorage("hitList", []),
-		currentHit: {},
+		currentHit: {
+      list: []
+    },
 		hit_ps: 10,
 		hit_pn: 1,
 		// 音乐排行榜
@@ -81,7 +81,7 @@ export const useBlblStore = defineStore({
 		},
 		initBiliMusic() {
 			// 获取排行榜的列表
-			api.biliMusic.getMusicRankList().then((res) => {
+      invokeBiliApi(BLBL.GET_MUSIC_RANK_LIST).then((res: any) => {
 				const rankObj = res.data.list;
 				let flatList: any[] = [];
 				// 按年份的借口,拍平
@@ -96,16 +96,15 @@ export const useBlblStore = defineStore({
 		// 全站音乐榜
 		getRankById(id: number) {
 			if (!id) return;
-			api.biliMusic
-				.getMusicRank({
+      invokeBiliApi(BLBL.GET_MUSIC_RANK, {
 					list_id: id,
 				})
-				.then((res) => {
+				.then((res: any) => {
 					const {
 						data: { list },
 					} = res as { data: { list: MusicRankItem[] } };
 					if (Array.isArray(list) && list.length > 0) {
-						this.musicRankList = res.data.list.map((item: MusicRankItem) => {
+						this.musicRankList = list.map((item: MusicRankItem) => {
 							return {
 								id: item.creation_bvid,
 								eno_song_type: "bvid",
@@ -121,36 +120,33 @@ export const useBlblStore = defineStore({
 				});
 		},
 		getrankList() {
-			api.blbl
-				.getMenuRank({
+      invokeBiliApi(BLBL.GET_MENU_RANK, {
 					ps: 3,
 				})
-				.then((res) => {
+				.then((res: any) => {
 					this.rankList = res.data.data || [];
 				});
 		},
 		getHitList() {
-			api.blbl
-				.getHitSong({
+      invokeBiliApi(BLBL.GET_HIT_SONG, {
 					ps: this.hit_ps,
 					pn: this.hit_pn,
 				})
-				.then((res) => {
+				.then((res: any) => {
 					this.hitList = res.data.data;
 				});
 		},
 		startPlay(item: any) {
 			const song = cloneDeep(item);
 			this.play = song;
-			const isInList = this.playList.some((item) => item?.id === song.id);
+			const isInList = this.playList.some((item: any) => item?.id === song.id);
 			if (!isInList) this.playList.push(song);
 		},
 		getHitDetailList(sid: number) {
-			api.blbl
-				.getHitSongList({
+      invokeBiliApi(BLBL.GET_HIT_SONG_LIST, {
 					sid,
 				})
-				.then((res) => {
+				.then((res: any) => {
 					this.currentHit.list = res.data.data;
 				});
 		},
@@ -162,3 +158,5 @@ export const useBlblStore = defineStore({
 });
 
 export type BlblStore = ReturnType<typeof useBlblStore>;
+
+

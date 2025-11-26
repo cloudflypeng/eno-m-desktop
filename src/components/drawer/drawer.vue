@@ -5,7 +5,7 @@ const props = defineProps<{
   open: boolean
   title: string
   position: 'top' | 'right' | 'bottom' | 'left'
-  class: string
+  class?: string
 }>()
 const emit = defineEmits(['visibleChange'])
 const drawerRef = ref<HTMLDialogElement>()

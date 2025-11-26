@@ -4,11 +4,11 @@ import QRCode from 'qrcode'
 import { toPng } from 'html-to-image'
 import Dialog from '~/components/dialog/index.vue'
 import { useBlblStore } from '~/blbl/store'
-import { useApiClient } from '~/composables/api'
+// @ts-ignore
+import { invokeBiliApi, BLBL } from '~/api/bili'
 import Message from '~/components/message'
 
 const store = useBlblStore()
-const api = useApiClient()
 const dialogVis = ref(false)
 const videoInfo = ref(null)
 const qrCodeUrl = ref('')
@@ -35,8 +35,8 @@ async function getVideoInfo() {
   if (!store.play?.bvid)
     return
 
-  const { data } = await api.blbl.getVideoInfo({
-    bvid: store.play.id,
+  const { data } = await invokeBiliApi(BLBL.GET_VIDEO_INFO, {
+    bvid: store.play.bvid,
   })
 
   videoInfo.value = data
