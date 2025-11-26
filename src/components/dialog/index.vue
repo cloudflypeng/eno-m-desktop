@@ -5,6 +5,7 @@ import { ref, watch, onMounted, computed, useSlots } from 'vue'
 const props = defineProps({
   open: Boolean,
   title: String,
+  class: String,
 })
 const emit = defineEmits(['visibleChange'])
 const slots = useSlots()
@@ -52,7 +53,10 @@ const hasFooter = computed(() => !!slots.footer)
   <Teleport to="body">
     <dialog
       ref="dialogRef" 
-      class="backdrop:bg-black/60 backdrop:backdrop-blur-sm bg-[#282828] text-white rounded-xl p-0 shadow-2xl w-[480px] max-w-[90vw] border border-white/10 focus:outline-none"
+      :class="cn(
+        'backdrop:bg-black/60 backdrop:backdrop-blur-sm bg-[#282828] text-white rounded-xl p-0 shadow-2xl w-[480px] max-w-[90vw] border border-white/10 focus:outline-none',
+        props.class
+      )"
       @click="clickDialog"
     >
       <!-- 标题栏 -->

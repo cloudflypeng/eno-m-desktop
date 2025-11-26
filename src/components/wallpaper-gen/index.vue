@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import Drawer from '~/components/drawer/drawer.vue'
+import Dialog from '~/components/dialog/index.vue'
 import { usePlaylistStore } from '~/playlist/store'
+import { ref, watch } from 'vue'
 
 interface Point {
   x: number
@@ -13,7 +14,14 @@ const PLstore = usePlaylistStore()
 // PLstore.posters 海报列表
 const selectedPosters = ref<string[]>([])
 watch(() => PLstore.posters, (posters) => {
-  selectedPosters.value = posters
+  // 如果 posters 是 undefined 或 null，默认为空数组
+  selectedPosters.value = Array.isArray(posters) ? posters : []
+}, { immediate: true })
+
+const isRandomMode = ref(false)
+
+watch(isRandomMode, () => {
+  generatePosterCanvas()
 })
 
 function highlightText() {
@@ -48,6 +56,8 @@ const defaultConfig: GridConfig = {
 
 const config = ref<GridConfig>({ ...defaultConfig })
 
+const isExporting = ref(false)
+
 watch(() => selectedPosters.value, (_posters) => {
   generatePosterCanvas()
 }, {
@@ -70,18 +80,20 @@ const resolutionMap: Record<string, Resolution> = {
 
 // 修改导出函数
 async function handleExportResolution(resolution: string) {
-  if (!PLstore.userPermission) {
-    highlightText()
-    return
-  }
+  if (isExporting.value) return
+  
   const canvas = canvasRef.value
   if (!canvas)
     return
 
+  isExporting.value = true
+
   // 获取新的尺寸
   const newSize = resolutionMap[resolution]
-  if (!newSize)
+  if (!newSize) {
+    isExporting.value = false
     return
+  }
 
   // 保存当前尺寸
   const originalWidth = canvas.width
@@ -92,7 +104,7 @@ async function handleExportResolution(resolution: string) {
     // 更新画布尺寸
     canvas.width = newSize.width
     canvas.height = newSize.height
-
+    
     // 调整配置以适应新的尺寸
     config.value = {
       ...config.value,
@@ -122,6 +134,7 @@ async function handleExportResolution(resolution: string) {
     canvas.height = originalHeight
     config.value = originalConfig
     await generatePosterCanvas()
+    isExporting.value = false
   }
 }
 
@@ -133,6 +146,114 @@ interface GridConfig {
   oddColumnOffset: number // 奇数列向上偏移量（像素）
   evenColumnOffset: number // 偶数列向上偏移量（像素）
 }
+
+interface CollageItem {
+  src: string
+  x: number
+  y: number
+  width: number
+  height: number
+  // 添加源图像裁剪参数
+  sx?: number
+  sy?: number
+  sWidth?: number
+  sHeight?: number
+}
+
+// 递归分割生成拼贴布局
+function generateRandomCollageLayout(
+  width: number, 
+  height: number, 
+  images: string[], 
+  x = 0, 
+  y = 0
+): CollageItem[] {
+  // 如果没有图片，返回空
+  if (images.length === 0) return []
+
+  // 如果只有一张图片，填满当前区域
+  if (images.length === 1) {
+    const src = images[0]
+    const imgEl = document.getElementById(src) as HTMLImageElement
+    if (!imgEl) return []
+
+    const item: CollageItem = {
+      src,
+      x: x + width / 2, // 中心点 x
+      y: y + height / 2, // 中心点 y
+      width,
+      height
+    }
+
+    // 计算裁切参数 (object-fit: cover)
+    const targetRatio = width / height
+    const sourceRatio = imgEl.naturalWidth / imgEl.naturalHeight
+    
+    if (targetRatio > sourceRatio) {
+      // 目标更宽，裁切高度
+      item.sWidth = imgEl.naturalWidth
+      item.sHeight = imgEl.naturalWidth / targetRatio
+      item.sx = 0
+      item.sy = (imgEl.naturalHeight - item.sHeight) / 2
+    } else {
+      // 目标更高，裁切宽度
+      item.sHeight = imgEl.naturalHeight
+      item.sWidth = imgEl.naturalHeight * targetRatio
+      item.sy = 0
+      item.sx = (imgEl.naturalWidth - item.sWidth) / 2
+    }
+
+    return [item]
+  }
+
+  // 随机打乱图片顺序(只在顶层调用时打乱一次最好，但这里递归没法判断，所以我们在外部打乱)
+  // 这里假设 images 已经被外部打乱了
+
+  // 决定分割方向：优先分割长边，如果差不多则随机
+  const isHorizontalSplit = width > height ? false : (height > width ? true : Math.random() > 0.5)
+  // isHorizontalSplit = true 意味着上下分割(水平切割线)，false 意味着左右分割(垂直切割线)
+  // 修正：width > height (宽长) -> 应该是左右分割 (Vertical Split)，即切割线是垂直的
+  // 让我们统一术语：
+  // splitVertical: 切割线垂直，左右两块。
+  // splitHorizontal: 切割线水平，上下两块。
+  
+  const splitVertical = width > height * 1.2 
+    ? true 
+    : (height > width * 1.2 ? false : Math.random() > 0.5)
+
+  // 随机分割比例 (0.3 - 0.7)
+  const splitRatio = 0.3 + Math.random() * 0.4
+  
+  // 根据分割比例分配图片数量
+  // 至少保留1张给较小的一边
+  const count1 = Math.max(1, Math.round(images.length * splitRatio))
+  const count2 = images.length - count1
+  
+  // 如果某一边分配为0（理论上上面逻辑已避免），强制分配
+  if (count2 === 0) return generateRandomCollageLayout(width, height, images, x, y)
+
+  const images1 = images.slice(0, count1)
+  const images2 = images.slice(count1)
+
+  if (splitVertical) {
+    // 左右分割
+    const w1 = width * splitRatio
+    const w2 = width - w1
+    return [
+      ...generateRandomCollageLayout(w1, height, images1, x, y),
+      ...generateRandomCollageLayout(w2, height, images2, x + w1, y)
+    ]
+  } else {
+    // 上下分割
+    const h1 = height * splitRatio
+    const h2 = height - h1
+    return [
+      ...generateRandomCollageLayout(width, h1, images1, x, y),
+      ...generateRandomCollageLayout(width, h2, images2, x, y + h1)
+    ]
+  }
+}
+
 // 计算交错网格布局
 function generateStaggeredGridPoints(width: number, height: number, images: string[], cfg: GridConfig = config.value): Point[] {
   // 计算列宽
@@ -212,10 +333,10 @@ function createImageElement(src: string): Promise<HTMLImageElement> {
 }
 
 async function generatePosterCanvas(size?: { width: number, height: number }) {
-  if (!PLstore.userPermission) {
-    highlightText()
-    return
-  }
+  // if (!PLstore.userPermission) {
+  //   highlightText()
+  //   return
+  // }
   const canvas = canvasRef.value
   if (!canvas)
     return
@@ -228,6 +349,8 @@ async function generatePosterCanvas(size?: { width: number, height: number }) {
     return
 
   ctx.clearRect(0, 0, canvas.width, canvas.height)
+  
+  if (!selectedPosters.value || selectedPosters.value.length === 0) return
 
   // 确保所有图片都已加载，并且支持跨域
   try {
@@ -253,40 +376,77 @@ async function generatePosterCanvas(size?: { width: number, height: number }) {
     return
   }
 
-  // 计算基础列宽
-  const totalGapWidth = config.value.gap * (config.value.columns - 1)
-  const usableWidth = canvas.width - config.value.padding * 2 - totalGapWidth
-  const columnWidth = usableWidth / config.value.columns
+  if (isRandomMode.value) {
+    // 随机打乱图片顺序
+    const shuffled = [...selectedPosters.value].sort(() => Math.random() - 0.5)
+    const items = generateRandomCollageLayout(canvas.width, canvas.height, shuffled)
+    
+    items.forEach((item) => {
+      const imgEl = document.getElementById(item.src) as HTMLImageElement
+      if (!imgEl)
+        return
 
-  // 生成交错网格布局点位
-  const points = generateStaggeredGridPoints(
-    canvas.width,
-    canvas.height,
-    selectedPosters.value,
-  )
+      if (item.sx !== undefined && item.sWidth !== undefined) {
+        // 使用裁切绘制
+        ctx.drawImage(
+          imgEl,
+          item.sx,
+          item.sy!,
+          item.sWidth,
+          item.sHeight!,
+          item.x - item.width / 2,
+          item.y - item.height / 2,
+          item.width,
+          item.height,
+        )
+      }
+      else {
+        ctx.drawImage(
+          imgEl,
+          item.x - item.width / 2,
+          item.y - item.height / 2,
+          item.width,
+          item.height,
+        )
+      }
+    })
+  }
+  else {
+    // 计算基础列宽
+    const totalGapWidth = config.value.gap * (config.value.columns - 1)
+    const usableWidth = canvas.width - config.value.padding * 2 - totalGapWidth
+    const columnWidth = usableWidth / config.value.columns
 
-  // 绘制图片
-  selectedPosters.value.forEach((poster, index) => {
-    const imgEl = document.getElementById(poster) as HTMLImageElement | null
-    if (!imgEl || index >= points.length)
-      return
-
-    const point = points[index]
-    const aspectRatio = imgEl.naturalWidth / imgEl.naturalHeight
-
-    // 计算绘制尺寸（不再使用缩放）
-    const drawWidth = columnWidth
-    const drawHeight = drawWidth / aspectRatio
-
-    // 居中绘制
-    ctx.drawImage(
-      imgEl,
-      point.x - drawWidth / 2,
-      point.y - drawHeight / 2,
-      drawWidth,
-      drawHeight,
+    // 生成交错网格布局点位
+    const points = generateStaggeredGridPoints(
+      canvas.width,
+      canvas.height,
+      selectedPosters.value,
     )
-  })
+
+    // 绘制图片
+    selectedPosters.value.forEach((poster, index) => {
+      const imgEl = document.getElementById(poster) as HTMLImageElement | null
+      if (!imgEl || index >= points.length)
+        return
+
+      const point = points[index]
+      const aspectRatio = imgEl.naturalWidth / imgEl.naturalHeight
+
+      // 计算绘制尺寸（不再使用缩放）
+      const drawWidth = columnWidth
+      const drawHeight = drawWidth / aspectRatio
+
+      // 居中绘制
+      ctx.drawImage(
+        imgEl,
+        point.x - drawWidth / 2,
+        point.y - drawHeight / 2,
+        drawWidth,
+        drawHeight,
+      )
+    })
+  }
 }
 
 function handleChangeSelectedPoster(poster: string) {
@@ -299,66 +459,78 @@ function handleChangeSelectedPoster(poster: string) {
 </script>
 
 <template>
-  <Drawer title="歌单海报生成" :open="PLstore.isShowPoster" position="bottom" class="bg-black" @visible-change="PLstore.isShowPoster = $event">
-    <div class="h-[90vh] bg-black bg-opacity-50">
-      <!-- 主容器 -->
-      <div class="h-full flex flex-col p-5 gap-4">
+  <Dialog 
+    title="歌单海报生成" 
+    :open="PLstore.isShowPoster" 
+    class="w-[90vw] max-w-[1400px] h-[85vh]" 
+    @visible-change="PLstore.isShowPoster = $event"
+  >
+    <div class="h-full flex flex-col gap-4">
         <!-- 顶部工具栏 -->
-        <div class="flex items-center gap-3 shrink-0">
+        <div class="flex items-center gap-3 shrink-0 p-1">
           <span class="text-lg">导出分辨率</span>
           <div class="flex gap-3">
             <div
               v-for="resolution in exportResolutions"
               :key="resolution"
-              class="text-[16px] font-bold bg-yellow px-2 py-1 cursor-pointer rounded-md w-20 text-center hover:bg-yellow-400 transition-colors"
+              class="text-[14px] font-bold bg-[#1db954] text-black px-3 py-1 rounded-full transition-colors flex items-center gap-2"
+              :class="isExporting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-[#1ed760]'"
               @click="handleExportResolution(resolution)"
             >
+              <div v-if="isExporting" class="i-mingcute:loading-fill animate-spin text-sm" />
               {{ resolution }}
             </div>
-            <a v-if="!PLstore.userPermission" id="highlightText" class="text-lg font-bold cursor-pointer" href="https://space.bilibili.com/184327681" target="_blank">
-              点击关注开发者,关注成功后刷新即可使用
-            </a>
+            <div
+              class="text-[14px] font-bold px-3 py-1 cursor-pointer rounded-full transition-colors ml-2"
+              :class="isRandomMode ? 'bg-purple-500 text-white hover:bg-purple-600' : 'bg-gray-600 text-white hover:bg-gray-700'"
+              @click="isRandomMode = !isRandomMode"
+            >
+              {{ isRandomMode ? '随机拼贴' : '网格布局' }}
+            </div>
           </div>
         </div>
 
         <!-- 内容区域 -->
-        <div class="flex gap-4 flex-1 min-h-0">
+        <div class="flex gap-6 flex-1 min-h-0">
           <!-- 左侧画布区域 -->
-          <div class="flex-1 flex items-center justify-center">
+          <div class="flex-1 flex items-center justify-center bg-[#181818] rounded-lg p-4">
             <canvas
               ref="canvasRef"
-              class="w-[90%] aspect-video bg-gray-800 object-contain"
+              class="w-full h-full object-contain max-w-full max-h-full shadow-lg"
             />
           </div>
 
           <!-- 右侧预览列表 -->
-          <div class="w-80 flex flex-col gap-4 shrink-0">
-            <div class="text-lg font-bold">
+          <div class="w-64 flex flex-col gap-4 shrink-0 max-h-[65vh]">
+            <div class="text-lg font-bold text-white">
               海报预览
             </div>
-            <div class="flex-1 overflow-y-auto min-h-0">
+            <div class="flex-1 overflow-y-auto min-h-0 pr-2 scrollbar-styled">
               <div
                 v-for="poster in PLstore.posters"
                 :key="poster"
-                class="mb-3 px-3 cursor-pointer"
+                class="mb-3"
               >
                 <div
-                  class="relative hover:opacity-90 transition-opacity"
+                  class="relative hover:opacity-90 transition-opacity cursor-pointer group"
                   @click="handleChangeSelectedPoster(poster)"
                 >
                   <img
                     :id="poster"
                     :src="poster"
                     crossorigin="anonymous"
-                    class="w-full rounded-md"
-                    :class="selectedPosters.includes(poster) ? 'border-2 border-yellow' : ''"
+                    class="w-full rounded-md transition-all duration-200"
+                    :class="selectedPosters.includes(poster) ? 'ring-2 ring-[#1db954]' : 'opacity-60 group-hover:opacity-100'"
                   >
+                  <div v-if="selectedPosters.includes(poster)" class="absolute top-2 right-2 bg-[#1db954] rounded-full p-0.5">
+                    <div class="i-mingcute:check-line text-black text-sm"></div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
     </div>
-  </Drawer>
+  </Dialog>
 </template>
+

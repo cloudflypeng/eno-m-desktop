@@ -3,9 +3,18 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
 import { apiProxy } from '../bili/api/index'
-import { initCookie } from '../bili/cookie'
+import { initCookie, setGlobalCookie } from '../bili/cookie'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+// 注册协议
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('eno-m', process.execPath, [path.resolve(process.argv[1])])
+  }
+} else {
+  app.setAsDefaultProtocolClient('eno-m')
+}
 
 // The built directory structure
 //
@@ -39,6 +48,29 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 let win: BrowserWindow | null = null
+
+// 处理协议链接
+function handleUrl(url: string) {
+  console.log('handleUrl', url)
+  if (!url) return
+  try {
+    const urlObj = new URL(url)
+    if (urlObj.protocol === 'eno-m:') {
+      const cookie = urlObj.searchParams.get('cookie')
+      if (cookie) {
+        setGlobalCookie(cookie)
+        console.log('Cookie set from URL protocol')
+        // 可以选择通知渲染进程
+        if (win && !win.isDestroyed() && !win.webContents.isDestroyed()) {
+          win.webContents.send('cookie-updated', cookie)
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to handle URL:', error)
+  }
+}
+
 const preload = path.join(__dirname, '../preload/index.mjs')
 const indexHtml = path.join(RENDERER_DIST, 'index.html')
 
@@ -48,7 +80,8 @@ async function createWindow() {
   
   win = new BrowserWindow({
     title: 'Main window',
-    icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
+    // icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
+    icon: path.join(process.env.VITE_PUBLIC, 'download.png'),
     webPreferences: {
       preload,
       // Warning: Enable nodeIntegration and disable contextIsolation is not secure in production
@@ -104,12 +137,21 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
-app.on('second-instance', () => {
+app.on('second-instance', (event, commandLine, _workingDirectory) => {
   if (win) {
     // Focus on the main window if the user tried to open another
     if (win.isMinimized()) win.restore()
     win.focus()
   }
+  // Windows 下处理协议链接
+  const url = commandLine.find(arg => arg.startsWith('eno-m://'))
+  if (url) handleUrl(url)
+})
+
+// macOS 下处理协议链接
+app.on('open-url', (event, url) => {
+  event.preventDefault()
+  handleUrl(url)
 })
 
 app.on('activate', () => {

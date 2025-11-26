@@ -35,7 +35,7 @@ const desc = computed(() => {
 
 function handleSingerDetail(singerMid) {
   PLstore.currentSinger = singerMid
-  router.push('/singerDetail')
+  router.push(`/singerDetail/${singerMid}`)
 }
 </script>
 

@@ -48,6 +48,7 @@
     "@vueuse/core": "^13.9.0",
     "@vueuse/math": "^13.9.0",
     "classnames": "^2.5.1",
+    "color.js": "^1.2.0",
     "howler": "^2.2.4",
     "html-to-image": "^1.11.13",
     "lodash": "^4.17.21",

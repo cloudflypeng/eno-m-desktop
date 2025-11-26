@@ -29,7 +29,7 @@ const router = createRouter({
 			component: () => import("../pages/Singer/SingerList.vue"),
 		},
 		{
-			path: "/singerDetail",
+			path: "/singerDetail/:mid",
 			name: "singerDetail",
 			component: () => import("../pages/Singer/SingerDetail.vue"),
 		},

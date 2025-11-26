@@ -6,7 +6,9 @@ import Play from './components/Play/Play.vue'
 import Sider from './components/Sider.vue'
 import Header from './components/Header.vue'
 import SongItem from './components/SongItem.vue'
+import WallpaperGen from './components/wallpaper-gen/index.vue'
 import { useBlblStore } from './blbl/store'
+import { invokeBiliApi, BLBL } from './api/bili'
 
 const userInfo = ref({})
 const store = useBlblStore()
@@ -18,7 +20,14 @@ const showPlaylist = ref(false)
 provide('showPlaylist', showPlaylist)
 
 onMounted(() => {
-
+  // 获取当前用户信息
+  invokeBiliApi(BLBL.GET_NAV).then((res) => {
+    if (res.data && res.data.isLogin) {
+      userInfo.value = res.data
+    } else {
+      console.warn('User not logged in or fetch failed', res)
+    }
+  })
 })
 provide('userInfo', userInfo)
 
@@ -69,6 +78,8 @@ function deleteSong(index) {
     <div class="grid-player h-[72px] z-50">
       <Play />
     </div>
+
+    <WallpaperGen />
 
   </main>
 </template>

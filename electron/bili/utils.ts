@@ -98,6 +98,20 @@ function apiListenerFactory(API_MAP: APIMAP) {
 
       const cookie = getGlobalCookie()
       
+      // csrf 处理：POST 请求且参数中有 csrf 的，自动从 cookie 中提取
+      if (method.toLowerCase() === 'post') {
+        const csrfMatch = cookie.match(/bili_jct=([^;]*)/)
+        if (csrfMatch && csrfMatch[1]) {
+          if (targetBody && Object.prototype.hasOwnProperty.call(targetBody, 'csrf')) {
+            targetBody.csrf = csrfMatch[1]
+          }
+          // 部分接口可能把 csrf 放在 query string 里，或者 params 里
+          if (targetParams && Object.prototype.hasOwnProperty.call(targetParams, 'csrf')) {
+            targetParams.csrf = csrfMatch[1]
+          }
+        }
+      }
+
       // Wbi 签名处理: 只有部分接口需要，且通常在 params 中
       // 这里我们简单判断一下，如果是 SEARCH 相关的，尝试加上 wbi 签名
       // 或者我们可以统一尝试加 wbi，或者在 API 定义里加标记

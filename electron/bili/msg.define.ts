@@ -20,6 +20,14 @@ enum BLBL {
   GET_MUSIC_RANK_LIST = 'getMusicRankList',
   GET_MUSIC_RANK = 'getMusicRank',
   GET_FAV_INFO = 'getFavInfo',
+  GET_FAV_LIST = 'getFavList', // 获取用户收藏夹列表
+  GET_FAV_RESOURCE_LIST = 'getFavResourceList', // 获取收藏夹内资源
+  GET_COLLECTED_FAV_LIST = 'getCollectedFavList', // 获取收集的收藏夹/合集
+  ADD_SONG_TO_FAV = 'addSongToFav', // 添加资源到收藏夹
+  DEL_SONG_FROM_FAV = 'delSongFromFav', // 从收藏夹移除资源
+  CREATE_FAV_FOLDER = 'createFavFolder', // 创建收藏夹
+  GET_USER_ARC = 'getUserArc', // 获取用户投稿视频
+  GET_NAV = 'getNav', // 获取当前登录用户信息
 }
 
 const API = {

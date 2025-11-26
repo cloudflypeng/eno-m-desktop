@@ -214,6 +214,113 @@ const api = {
     },
     afterHandle: AHS.J,
   },
+  // 获取用户创建的收藏夹列表
+  [BLBL.GET_FAV_LIST]: {
+    url: `${baseUrl}/x/v3/fav/folder/created/list-all`,
+    _fetch: {
+      method: 'get',
+    },
+    params: {
+      up_mid: 0,
+      type: 0,
+    },
+    afterHandle: AHS.J,
+  },
+  // 获取用户收藏的收藏夹列表
+  [BLBL.GET_COLLECTED_FAV_LIST]: {
+    url: `${baseUrl}/x/v3/fav/folder/collected/list`,
+    _fetch: {
+      method: 'get',
+    },
+    params: {
+      up_mid: 0,
+      pn: 1,
+      ps: 20,
+      platform: 'web',
+    },
+    afterHandle: AHS.J,
+  },
+  // 获取收藏夹资源详情 (复用 GET_FAV_INFO，但这里显式定义一个别名以防万一)
+  [BLBL.GET_FAV_RESOURCE_LIST]: {
+    url: `${baseUrl}/x/v3/fav/resource/list`,
+    _fetch: {
+      method: 'get',
+    },
+    params: {
+      media_id: 0,
+      pn: 1,
+      ps: 20,
+    },
+    afterHandle: AHS.J,
+  },
+  // 添加资源到收藏夹
+  [BLBL.ADD_SONG_TO_FAV]: {
+    url: `${baseUrl}/x/v3/fav/resource/deal`,
+    _fetch: {
+      method: 'post',
+    },
+    params: {
+      rid: 0, // 资源ID (avid)
+      type: 2, // 视频
+      add_media_ids: '', // 逗号分隔的收藏夹ID
+      // del_media_ids: '',
+      csrf: '', // 需要 csrf token，cookie 中获取
+    },
+    afterHandle: AHS.J,
+  },
+  // 从收藏夹移除资源
+  [BLBL.DEL_SONG_FROM_FAV]: {
+    url: `${baseUrl}/x/v3/fav/resource/deal`,
+    _fetch: {
+      method: 'post',
+    },
+    params: {
+      rid: 0, // 资源ID (avid)
+      type: 2, // 视频
+      // add_media_ids: '',
+      del_media_ids: '', // 逗号分隔的收藏夹ID
+      csrf: '',
+    },
+    afterHandle: AHS.J,
+  },
+  // 创建收藏夹
+  [BLBL.CREATE_FAV_FOLDER]: {
+    url: `${baseUrl}/x/v3/fav/folder/add`,
+    _fetch: {
+      method: 'post',
+    },
+    params: {
+      title: '',
+      intro: '',
+      privacy: 0, // 0: 公开, 1: 私密
+      csrf: '',
+    },
+    afterHandle: AHS.J,
+  },
+  // 获取用户投稿视频
+  [BLBL.GET_USER_ARC]: {
+    url: `${baseUrl}/x/space/wbi/arc/search`,
+    _fetch: {
+      method: 'get',
+    },
+    params: {
+      mid: 0,
+      pn: 1,
+      ps: 25,
+      tid: 3, // 音乐分区
+      keyword: '',
+      order: 'pubdate',
+    },
+    afterHandle: AHS.J,
+  },
+  // 获取当前用户信息 (Nav)
+  [BLBL.GET_NAV]: {
+    url: `${baseUrl}/x/web-interface/nav`,
+    _fetch: {
+      method: 'get',
+    },
+    afterHandle: AHS.J,
+  },
 }
 
 export default api
