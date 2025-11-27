@@ -3,6 +3,10 @@ import { ref } from 'vue'
 import { useInfiniteScroll } from '@vueuse/core'
 import cn from 'classnames'
 
+defineOptions({
+  name: 'search'
+})
+
 import SongItem from '~/components/SongItem.vue'
 import Loading from '~/components/loading/index.vue'
 import { invokeBiliApi, BLBL } from '~/api/bili'
@@ -90,7 +94,6 @@ async function handleSearch() {
         isLoading.value = true
         const res = await invokeBiliApi(BLBL.GET_VIDEO_INFO, { bvid })
         isLoading.value = false
-        console.log(res)
         const item = res.data
         if (item) {
           const searchSong = {
@@ -125,21 +128,25 @@ async function handleSearch() {
 </script>
 
 <template>
-  <section class="w-full h-full flex flex-col pt-6 px-8 bg-[#121212]">
+  <section class="w-full h-[80vh] flex flex-col pt-6 px-8 bg-[#121212]">
     <!-- 搜索输入框 -->
-    <div class="w-[364px] relative flex gap-3 mb-6 text-black">
-      <div class="absolute top-1/2 left-3 -translate-y-1/2 z-10 pointer-events-none">
-         <div class="i-mingcute:search-line text-xl text-[#121212]" />
+    <div class="w-[50vw] relative group mb-8 mx-auto">
+      <div class="absolute left-3 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+        <div class="i-mingcute:search-line text-xl text-[#b3b3b3] group-focus-within:text-white transition-colors" />
       </div>
       <input
-        id="search" 
-        v-model="keyword" 
-        type="text" 
-        class="w-full h-12 pl-10 pr-4 rounded-full bg-white outline-none focus:ring-2 focus:ring-white/50 transition-all placeholder:text-[#757575]" 
-        placeholder="想听什么？" 
+        id="search"
+        v-model="keyword"
+        type="text"
+        class="w-full h-12 pl-10 pr-10 rounded-full bg-[#242424] hover:bg-[#2a2a2a] hover:ring-1 hover:ring-[#ffffff33] focus:bg-[#2a2a2a] focus:ring-2 focus:ring-white outline-none text-white text-sm transition-all placeholder:text-[#757575]"
+        placeholder="想听什么？"
         @keyup.enter="handleSearch"
+        autocomplete="off"
       >
-      <Loading v-if="isLoading" class="absolute right-4 top-1/2 -translate-y-1/2" />
+      <div v-if="keyword" class="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-[#b3b3b3] hover:text-white" @click="keyword = ''">
+        <div class="i-mingcute:close-line text-lg" />
+      </div>
+      <Loading v-if="isLoading" class="absolute right-3 top-1/2 -translate-y-1/2" />
     </div>
 
     <!-- 搜索结果 -->
@@ -148,17 +155,19 @@ async function handleSearch() {
       ref="scrollRef" 
       class="flex-1 w-full overflow-y-auto scrollbar-styled pb-8"
     >
-      <div class="grid grid-cols-[auto_1fr_1fr_auto] gap-4 text-[#b3b3b3] text-sm border-b border-[#ffffff1a] pb-2 mb-4 px-4 sticky top-0 bg-[#121212] z-10">
-        <div class="text-center w-8">#</div>
+      <div class="grid grid-cols-[3rem_3.5rem_1fr_4rem_6rem] gap-4 text-[#b3b3b3] text-sm border-b border-[#ffffff1a] pb-2 mb-4 px-4 sticky top-0 bg-[#121212] z-10">
+        <div class="text-center">#</div>
+        <div></div>
         <div>标题</div>
-        <div>UP主</div>
-        <div class="i-mingcute:time-line text-lg"></div>
+        <div class="i-mingcute:time-line text-lg justify-self-end mr-4"></div>
+        <div></div>
       </div>
 
       <SongItem 
         v-for="(item, index) in result" 
         :key="item.bvid" 
-        :song="item" 
+        :song="item"
+        :index="index + 1" 
         check-pages 
         class="hover:bg-[#ffffff1a] rounded-md px-2"
       />
@@ -177,11 +186,10 @@ async function handleSearch() {
 
 <style scoped>
 /* 自定义 SongItem 在列表中的样式适配 */
+/* SongItem now handles its own layout */
 :deep(.song-item) {
-  display: grid;
-  grid-template-columns: auto 1fr 1fr auto;
-  gap: 1rem;
-  align-items: center;
-  padding: 0.5rem;
+  /* Override the grid layout to match header if needed, but SongItem has its own defaults */
+  /* We force specific columns to align with header */
+  grid-template-columns: 3rem 3.5rem 1fr 4rem 6rem !important;
 }
 </style>

@@ -2,6 +2,8 @@ import { defineStore } from "pinia";
 import { useLocalStorage } from "@vueuse/core";
 // @ts-ignore
 import { invokeBiliApi, BLBL } from "~/api/bili";
+// @ts-ignore
+import Message from '~/components/message';
 
 export interface song {
 	id: string | number;
@@ -43,6 +45,7 @@ export const usePlaylistStore = defineStore("playlist", {
 		posters: [] as string[],
 		// 用户权限,取决于是否关注了开发者
 		userPermission: false,
+		userInfo: {} as any,
         // BLBL 收藏夹列表缓存
         favList: [],
         collectedFavList: [],
@@ -63,7 +66,25 @@ export const usePlaylistStore = defineStore("playlist", {
 			this.addSongDialog = false;
 		},
         // 获取用户创建的收藏夹
-        async fetchFavLists(mid: string) {
+        async fetchFavLists(mid?: string) {
+            if (!mid) {
+                if (this.userInfo?.mid) {
+                    mid = this.userInfo.mid;
+                } else {
+                    try {
+                        const res = await invokeBiliApi(BLBL.GET_NAV);
+                        if (res.data && res.data.isLogin) {
+                            this.userInfo = res.data;
+                            mid = res.data.mid;
+                        }
+                    } catch (e) {
+                        console.error('Failed to fetch user info:', e);
+                    }
+                }
+            }
+
+            if (!mid) return;
+
             try {
                 const createdRes = await invokeBiliApi(BLBL.GET_FAV_LIST, { up_mid: mid });
                 this.favList = createdRes.data.list || [];
@@ -102,9 +123,16 @@ export const usePlaylistStore = defineStore("playlist", {
                     add_media_ids: mediaId.toString(),
                 });
                 this.addSongDialog = false;
-                // 可以加个提示
+                Message.show({
+                    type: 'success',
+                    message: '添加成功'
+                });
             } catch (error) {
                 console.error('Failed to add song to fav:', error);
+                Message.show({
+                    type: 'error',
+                    message: '添加失败'
+                });
             }
         },
         // 从 BLBL 收藏夹移除歌曲
@@ -121,9 +149,17 @@ export const usePlaylistStore = defineStore("playlist", {
                     rid,
                     del_media_ids: mediaId.toString(),
                 });
+                Message.show({
+                    type: 'success',
+                    message: '移除成功'
+                });
                 // 刷新当前列表逻辑在组件里处理，或者这里触发一个事件
             } catch (error) {
                 console.error('Failed to remove song from fav:', error);
+                Message.show({
+                    type: 'error',
+                    message: '移除失败'
+                });
             }
         },
         // 创建 BLBL 收藏夹

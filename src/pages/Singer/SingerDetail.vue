@@ -15,7 +15,7 @@ const route = useRoute()
 const PLstore = usePlaylistStore()
 const store = useBlblStore()
 
-const currentMid = computed(() => route.query.mid || PLstore.currentSinger)
+const currentMid = computed(() => route.params.mid || '')
 
 const info = computed(() => {
   return PLstore.singerCardCache[currentMid.value]
@@ -89,7 +89,7 @@ async function getSongs(params) {
       title: item.title,
       description: item.description,
       author: item.author,
-      duration: item.duration || 0,
+      duration: item.length || 0,
       bvid: item.bvid,
     }))
     
@@ -112,7 +112,7 @@ async function getSongs(params) {
 
 watch(() => currentMid.value, (mid) => {
   if (!mid) return
-  PLstore.fetchSingerInfo(mid, false)
+  PLstore.fetchSingerInfo(mid, true)
   songListByPage.value = {}
   page.value.pn = 1
   loading.value = false 
@@ -184,8 +184,6 @@ function startExportPoster() {
           >
             Export Poster
           </button>
-
-          <div class="i-mingcute:more-2-fill text-3xl text-[#b3b3b3] hover:text-white cursor-pointer transition-colors"></div>
         </div>
 
         <!-- 搜索 -->
@@ -201,11 +199,12 @@ function startExportPoster() {
         </div>
       </div>
     </div>
-    <div class="grid grid-cols-[auto_1fr_1fr_auto] gap-4 text-[#b3b3b3] text-sm border-b border-[#ffffff1a] pb-2 px-4">
-      <div class="text-center w-8">#</div>
+    <div class="grid grid-cols-[3rem_3.5rem_1fr_4rem_6rem] gap-4 text-[#b3b3b3] text-sm border-b border-[#ffffff1a] pb-2 px-12">
+      <div class="text-center">#</div>
+      <div></div>
       <div>标题</div>
-      <div>描述</div>
-      <div class="i-mingcute:time-line text-lg"></div>
+      <div class="i-mingcute:time-line text-lg justify-self-end mr-4"></div>
+      <div></div>
     </div>
     <!-- 歌曲列表 (滚动区域) -->
     <div 
@@ -217,6 +216,7 @@ function startExportPoster() {
            v-for="(song, index) in renderList" 
            :key="song.id" 
            :song="song" 
+           :index="index + 1"
            class="hover:bg-[#ffffff1a] rounded-md px-2"
          >
          </SongItem>
@@ -231,9 +231,8 @@ function startExportPoster() {
 <style scoped>
 /* 自定义 SongItem 样式覆盖 */
 :deep(.song-item) {
-  display: grid;
-  grid-template-columns: auto 1fr 1fr auto;
-  gap: 1rem;
+  /* 强制对齐 header */
+  grid-template-columns: 3rem 3.5rem 1fr 4rem 6rem !important;
   padding: 0.5rem 1rem;
 }
 </style>

@@ -7,6 +7,7 @@ import Sider from './components/Sider.vue'
 import Header from './components/Header.vue'
 import SongItem from './components/SongItem.vue'
 import WallpaperGen from './components/wallpaper-gen/index.vue'
+import AddSong from './playlist/AddSong.vue'
 import { useBlblStore } from './blbl/store'
 import { invokeBiliApi, BLBL } from './api/bili'
 
@@ -49,7 +50,11 @@ function deleteSong(index) {
       <Header />
       <div class="flex-1 overflow-y-auto scrollbar-styled relative">
         <div class="fadeInWrapper min-h-full">
-          <router-view></router-view>
+          <router-view v-slot="{ Component }">
+            <keep-alive include="search">
+              <component :is="Component" />
+            </keep-alive>
+          </router-view>
         </div>
       </div>
     </div>
@@ -80,6 +85,7 @@ function deleteSong(index) {
     </div>
 
     <WallpaperGen />
+    <AddSong />
 
   </main>
 </template>

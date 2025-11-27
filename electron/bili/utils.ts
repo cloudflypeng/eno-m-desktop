@@ -9,7 +9,7 @@ async function toJsonHandler(data: Response): Promise<any> {
   try {
     return JSON.parse(text)
   } catch (e) {
-    console.error('JSON Parse Error. Response text:', text)
+    console.error('JSON Parse Error. Response text:', text, e)
     throw new Error(`Response is not JSON: ${text.slice(0, 100)}...`)
   }
 }
@@ -66,7 +66,31 @@ interface APIMAP {
 import { getGlobalCookie } from './cookie'
 import { encWbi, getWbiKeys } from './wbi'
 
-// ... existing imports
+// 简单的防风控限流器
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+class RateLimiter {
+  private queue: Promise<void> = Promise.resolve();
+  
+  async schedule<T>(fn: () => Promise<T>): Promise<T> {
+    const previousTask = this.queue;
+    const currentTask = previousTask.then(() => fn());
+    
+    // 更新队列：当前任务执行完后，再额外等待一段时间
+    this.queue = currentTask.then(async () => {
+      // 随机延迟 300ms - 800ms
+      const delay = Math.floor(Math.random() * 500) + 300;
+      await wait(delay);
+    }).catch(async () => {
+        const delay = Math.floor(Math.random() * 500) + 300;
+        await wait(delay);
+    });
+    
+    return currentTask;
+  }
+}
+
+const limiter = new RateLimiter();
 
 // 工厂函数API_LISTENER_FACTORY
 function apiListenerFactory(API_MAP: APIMAP) {
@@ -174,7 +198,9 @@ function apiListenerFactory(API_MAP: APIMAP) {
 
 
       // fetch and after handle
-      let baseFunc = fetch(url, fetchOpt)
+      // 使用限流器包裹 fetch 请求
+      let baseFunc = limiter.schedule(() => fetch(url, fetchOpt))
+      
       afterHandle.forEach((func) => {
         if (func.name === sendResponseHandler.name && sendResponse)
           // sendResponseHandler 是一个特殊的后处理函数，需要传入sendResponse

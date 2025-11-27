@@ -7,11 +7,16 @@ import { usePlaylistStore } from '../playlist/store.ts'
 import { invokeBiliApi, BLBL } from '~/api/bili'
 import Message from '~/components/message'
 import { useRouter } from 'vue-router'
+import { formatTime } from '~/utils'
 
 const props = defineProps({
   song: {
     type: Object,
     default: null,
+  },
+  index: {
+    type: Number,
+    default: -1,
   },
   size: {
     // default, mini
@@ -47,34 +52,43 @@ const router = useRouter()
 const store = useBlblStore()
 const PLstore = usePlaylistStore()
 
-const { later, del, star, checkPages } = props
-const { cover, title, author, pages, mid } = props.song
+const { del, star, checkPages } = props
+const { cover, title, author, pages, mid, duration } = props.song || {}
 
 const isPlaying = computed(() => {
   if (!props.showActive)
     return false
   const current = store.play
-  // 兼容原本的错别字
-  const type = current.eno_song_type || current.enu_song_type
+  const type = current.eno_song_type
 
-  if (type && current[type] === props?.song[type]) {
+  if (type && current[type] === props?.song?.[type]) {
     return true
   }
   return false
 })
 
 const styleBySize = computed(() => {
+  const hasIndex = props.index !== -1
+  // Grid columns definition
+  // Index (opt) | Image | Title/Info | Time | Actions
+  let cols = ''
+  if (hasIndex) cols += '3rem '
+  
   if (props.size === 'mini') {
+    cols += '3.5rem 1fr auto auto'
     return {
-      wrapper: `grid-cols-[3.5rem_1fr_auto] gap-3`,
+      wrapper: `grid gap-3 items-center`,
+      gridTemplateColumns: cols,
       title: 'text-sm font-medium w-full truncate text-white',
       img: 'h-10 w-10 rounded object-cover',
       author: 'text-xs text-gray-400 truncate'
     }
   }
   else {
+    cols += '3.5rem 1fr auto auto'
     return {
-      wrapper: `grid-cols-[3.5rem_1fr_auto] gap-4`,
+      wrapper: `grid gap-4 items-center`,
+      gridTemplateColumns: cols,
       title: 'text-base font-medium truncate text-white',
       img: 'h-12 w-12 rounded object-cover',
       author: 'text-sm text-gray-400 truncate'
@@ -110,35 +124,23 @@ async function handleClick() {
   }
 }
 
-function addToLater() {
-  const isInLater = PLstore.listenLater.some(i => i.id === props.song.id)
-  if (isInLater) {
-    Message.show({
-      type: 'error',
-      message: '已存在',
-    })
-    return
-  }
-  PLstore.addToListenLater(props.song)
-  Message.show({
-    type: 'info',
-    message: '已添加到稍后再听',
-  })
-}
-
 function handleSingerDetail(singerMid) {
-  if (!singerMid)
-    return
-  PLstore.currentSinger = singerMid
-  router.push('/singerDetail')
+  if (!singerMid) return
+  router.push(`/singerDetail/${singerMid}`)
 }
 </script>
 
 <template>
   <div 
     :class="cn('song-item h-16 px-2 rounded-md hover:bg-white/10 cursor-pointer transition-colors group', styleBySize.wrapper, props.class)" 
+    :style="{ gridTemplateColumns: styleBySize.gridTemplateColumns }"
     @click="handleClick"
   >
+    <!-- Index -->
+    <div v-if="props.index !== -1" class="text-center text-gray-500 font-medium">
+      {{ props.index }}
+    </div>
+
     <div class="relative">
       <img :src="cover" :class="styleBySize.img">
       <div v-if="isPlaying" class="absolute inset-0 bg-black/40 flex items-center justify-center rounded">
@@ -146,7 +148,7 @@ function handleSingerDetail(singerMid) {
       </div>
     </div>
     
-    <div class="flex flex-col overflow-hidden justify-center h-full">
+    <div class="flex flex-col overflow-hidden justify-center h-full min-w-0">
       <div :class="styleBySize.title" v-html="title" />
       <div class="flex items-center gap-2 mt-0.5">
         <span v-if="pages" class="bg-[#282828] text-[10px] px-1 rounded text-gray-300">合集</span>
@@ -160,9 +162,14 @@ function handleSingerDetail(singerMid) {
       </div>
     </div>
 
+    <!-- Time -->
+    <div class="text-sm text-gray-500 tabular-nums">
+      {{ (duration || 0) }}
+    </div>
+
     <!-- 操作 -->
     <div class="flex items-center gap-4 text-lg text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity pr-2">
-      <div v-if="later" class="i-mingcute:time-line hover:text-white" title="稍后播放" @click.stop="addToLater" />
+      <!-- <div v-if="later" class="i-mingcute:time-line hover:text-white" title="稍后播放" @click.stop="addToLater" /> -->
       <div v-if="star" class="i-mingcute:heart-line hover:text-white" title="收藏" @click.stop="PLstore.startAddSong(props.song)" />
       <div v-if="del" class="i-mingcute:delete-2-line hover:text-red-500" title="删除" @click.stop="emit('delete-song', props.song)" />
     </div>
@@ -171,7 +178,7 @@ function handleSingerDetail(singerMid) {
 
 <style scoped>
 .song-item {
-  display: grid;
+  /* display: grid; moved to style bindings */
   align-items: center;
 }
 </style>

@@ -2,6 +2,34 @@ import { encWbi, getWbiKeys } from './wbi'
 // @ts-ignore
 import { invokeBiliApi, BLBL } from './bili'
 
+// 简单的防风控限流器
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+class RateLimiter {
+  private queue: Promise<void> = Promise.resolve()
+
+  async schedule<T>(fn: () => Promise<T>): Promise<T> {
+    const previousTask = this.queue;
+    const currentTask = previousTask.then(() => fn());
+    
+    // 更新队列：当前任务执行完后，再额外等待一段时间，才允许下一个任务执行
+    this.queue = currentTask.then(async () => {
+      // 随机延迟 200ms - 500ms
+      const delay = Math.floor(Math.random() * 300) + 200
+      await wait(delay)
+    }).catch(async () => {
+        // 即使失败也要等待
+        const delay = Math.floor(Math.random() * 300) + 200
+        await wait(delay)
+    })
+    
+    return currentTask
+  }
+}
+
+const limiter = new RateLimiter()
+const fetchWithLimit = (url: RequestInfo | URL, init?: RequestInit) => limiter.schedule(() => fetch(url, init))
+
 async function getUserArc(params: object) {
   // 尽量使用 IPC 调用以复用主进程的 Cookie 和签名能力
   // 但目前 BLBL 中没有直接对应的 API，且 src/api/wbi.ts 里的 getWbiKeys 实现也比较简单（没有复用 electron 的 cookie）
@@ -42,7 +70,7 @@ async function getUserArc(params: object) {
   const img_key = web_keys.img_key
   const sub_key = web_keys.sub_key
   const query = encWbi(params, img_key, sub_key)
-  const res = await fetch(`https://api.bilibili.com/x/space/wbi/arc/search?${query}`, {
+  const res = await fetchWithLimit(`https://api.bilibili.com/x/space/wbi/arc/search?${query}`, {
     method: 'GET',
     headers: {
       Referer: 'https://message.bilibili.com/',
@@ -60,7 +88,7 @@ async function getSeasonInfo(params: Record<string, any>) {
   }
   params = { ...defaultParams, ...params }
   const url = `https://api.bilibili.com/x/polymer/web-space/seasons_archives_list?${new URLSearchParams(params).toString()}`
-  const res = await fetch(url, {
+  const res = await fetchWithLimit(url, {
     method: 'GET',
 
     headers: {
@@ -76,7 +104,7 @@ function getFavorites({ mid }: { mid: number }) {
   urlserachparams.set('type', '0')
   urlserachparams.set('up_mid', mid.toString())
 
-  return fetch(`https://api.bilibili.com/x/v3/fav/folder/created/list-all?${urlserachparams.toString()}`, {
+  return fetchWithLimit(`https://api.bilibili.com/x/v3/fav/folder/created/list-all?${urlserachparams.toString()}`, {
     method: 'GET',
     headers: {
       Referer: 'https://www.bilibili.com/',
@@ -84,7 +112,7 @@ function getFavorites({ mid }: { mid: number }) {
   }).then(res => res.json())
 }
 // https://api.bilibili.com/x/web-interface/nav
-const getUserInfo = () => fetch('https://api.bilibili.com/x/web-interface/nav', {
+const getUserInfo = () => fetchWithLimit('https://api.bilibili.com/x/web-interface/nav', {
   headers: {
       Referer: 'https://www.bilibili.com/',
     }
@@ -97,7 +125,7 @@ function getCollectedFavorites({ mid }: { mid: number }) {
   urlserachparams.set('pn', '1')
   urlserachparams.set('ps', '70')
   urlserachparams.set('platform', 'web')
-  return fetch(`https://api.bilibili.com/x/v3/fav/folder/collected/list?${urlserachparams.toString()}`, {
+  return fetchWithLimit(`https://api.bilibili.com/x/v3/fav/folder/collected/list?${urlserachparams.toString()}`, {
     method: 'GET',
     headers: {
       Referer: 'https://www.bilibili.com/',
@@ -106,7 +134,7 @@ function getCollectedFavorites({ mid }: { mid: number }) {
 }
 // https://api.bilibili.com/x/v3/fav/resource/infos
 function getFavResourceInfos({ id }: { id: number }) {
-  return fetch(`https://api.bilibili.com/x/v3/fav/resource/infos?${new URLSearchParams({ resources: `${id.toString()}:2` }).toString()}`, {
+  return fetchWithLimit(`https://api.bilibili.com/x/v3/fav/resource/infos?${new URLSearchParams({ resources: `${id.toString()}:2` }).toString()}`, {
     method: 'GET',
     headers: {
       Referer: 'https://www.bilibili.com/',

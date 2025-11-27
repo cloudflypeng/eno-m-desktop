@@ -1,4 +1,6 @@
 import md5 from 'md5'
+// @ts-ignore
+import { invokeBiliApi, BLBL } from './bili'
 
 const mixinKeyEncTab: number[] = [
   46,
@@ -95,15 +97,10 @@ function encWbi(params: Record<string, any>, img_key: string, sub_key: string): 
 
 // 获取最新的 img_key 和 sub_key
 async function getWbiKeys(): Promise<{ img_key: string, sub_key: string }> {
-  const res = await fetch('https://api.bilibili.com/x/web-interface/nav', {
-    headers: {
-      // SESSDATA 字段
-      'Cookie': 'SESSDATA=xxxxxx',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3',
-      'Referer': 'https://www.bilibili.com/', // 对于直接浏览器调用可能不适用
-    },
-  })
-  const { data: { wbi_img: { img_url, sub_url } } } = await res.json()
+  // 使用主进程代理请求，确保带上 Cookie 和正确 Header，避免前端 fetch 被风控
+  const res = await invokeBiliApi(BLBL.GET_NAV)
+  // invokeBiliApi 已经处理了解析，直接取 res.data
+  const { wbi_img: { img_url, sub_url } } = res.data
 
   return {
     img_key: img_url.slice(
