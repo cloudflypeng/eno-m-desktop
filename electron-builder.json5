@@ -12,12 +12,14 @@
     "dist-electron"
   ],
   "mac": {
+    "icon": "public/512px.png",
     "target": [
       "dmg"
     ],
     "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
   },
   "win": {
+    "icon": "public/512px.png",
     "target": [
       {
         "target": "nsis",
