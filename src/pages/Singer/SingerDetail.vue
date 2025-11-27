@@ -9,6 +9,7 @@ import { invokeBiliApi, BLBL } from '~/api/bili'
 import { useBlblStore } from '~/blbl/store.ts'
 import { usePlaylistStore } from '~/playlist/store'
 import Loading from '~/components/loading/index.vue'
+import Message from '~/components/message'
 import { average } from 'color.js'
 
 const route = useRoute()
@@ -123,6 +124,25 @@ function handlePlayUser() {
   store.playList = renderList.value
   store.play = renderList.value[0]
 }
+const isFollowed = computed(() => {
+  return PLstore.singers.includes(currentMid.value)
+})
+
+async function handleFollow() {
+  if (!currentMid.value) return
+  try {
+    if (isFollowed.value) {
+      PLstore.removeSinger(currentMid.value)
+      Message.show({ type: 'success', message: '已取消关注' })
+    } else {
+      PLstore.addSinger(currentMid.value)
+      Message.show({ type: 'success', message: '关注成功' })
+    }
+  } catch (e) {
+    console.error(e)
+    Message.show({ type: 'error', message: '操作失败' })
+  }
+}
 function startExportPoster() {
   PLstore.isShowPoster = true
   PLstore.posters = renderList.value.map(item => item.cover)
@@ -171,13 +191,21 @@ function startExportPoster() {
       <!-- 操作栏 -->
       <div class="bg-[#121212] px-8 py-4 flex items-center justify-between">
         <div class="flex items-center gap-6">
-          <div 
+           <div 
              class="w-14 h-14 rounded-full bg-[#1db954] flex items-center justify-center shadow-lg cursor-pointer hover:scale-105 hover:bg-[#1ed760] transition-all"
              @click="handlePlayUser"
            >
               <div class="i-mingcute:play-fill text-black text-3xl pl-1"></div>
            </div>
            
+           <button
+            class="px-4 py-1.5 rounded-full border border-[#727272] hover:border-white text-sm font-bold hover:scale-105 transition-all text-white uppercase tracking-wider flex items-center gap-2"
+            @click="handleFollow"
+          >
+            <div :class="isFollowed ? 'i-mingcute:check-line' : 'i-mingcute:add-line'" class="text-lg" />
+            {{ isFollowed ? 'Following' : 'Follow' }}
+          </button>
+
            <button
             class="px-4 py-1.5 rounded-full border border-[#727272] hover:border-white text-sm font-bold hover:scale-105 transition-all text-white uppercase tracking-wider"
             @click="startExportPoster"

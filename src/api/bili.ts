@@ -27,6 +27,7 @@ enum BLBL {
   CREATE_FAV_FOLDER = 'createFavFolder', // 创建收藏夹
   GET_USER_ARC = 'getUserArc', // 获取用户投稿视频
   GET_NAV = 'getNav', // 获取当前登录用户信息
+  RELATION_MODIFY = 'relationModify', // 关注/取消关注
 }
 
 interface BiliApiParams {

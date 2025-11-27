@@ -9,8 +9,8 @@
 ---
 
 <!-- Update your username if 'meanc' is incorrect -->
-[![Build Status](https://github.com/cloudflypeng/eno-m-desktop/actions/workflows/build.yml/badge.svg)](https://github.com/cloudflypeng/eno-m-desktop/actions/workflows/build.yml)
-[![License](https://img.shields.io/github/license/cloudflypeng/eno-m-desktop)](LICENSE)
+[![Build Status](https://github.com/meanc/eno-m-desktop/actions/workflows/build.yml/badge.svg)](https://github.com/meanc/eno-m-desktop/actions/workflows/build.yml)
+[![License](https://img.shields.io/github/license/meanc/eno-m-desktop)](LICENSE)
 
 ## ✨ Features
 
@@ -24,7 +24,7 @@
 
 ## 📥 Download
 
-前往 [Releases](https://github.com/cloudflypeng/eno-m-desktop/releases) 页面下载最新版本。
+前往 [Releases](https://github.com/meanc/eno-m-desktop/releases) 页面下载最新版本。
 
 - **macOS**: `.dmg`
 - **Windows**: `.exe`
@@ -40,7 +40,7 @@
 
 ```bash
 # Clone repository
-git clone https://github.com/cloudflypeng/eno-m-desktop.git
+git clone https://github.com/meanc/eno-m-desktop.git
 cd eno-m-desktop
 
 # Install dependencies
@@ -66,20 +66,4 @@ pnpm build
 
 ## 📄 License
 
-[MIT](LICENSE) © 2024-present [cloudflypeng](https://github.com/cloudflypeng)
-
-## ⚠️ Installation Issues
-
-### macOS: "App is damaged" / "无法打开"
-
-Since the app is not signed with an Apple Developer Certificate (requires $99/year), macOS will block it by default.
-
-**Solution:**
-
-1. Open Terminal.
-2. Run the following command:
-   ```bash
-   sudo xattr -r -d com.apple.quarantine /Applications/Eno-M\ Desktop.app
-   ```
-   *(Make sure you have moved the app to `/Applications` folder first)*
-
+[MIT](LICENSE) © 2024-present [meanc](https://github.com/meanc)

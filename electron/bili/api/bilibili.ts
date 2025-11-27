@@ -321,6 +321,20 @@ const api = {
     },
     afterHandle: AHS.J,
   },
+  // 关注/取消关注
+  [BLBL.RELATION_MODIFY]: {
+    url: `${baseUrl}/x/relation/modify`,
+    _fetch: {
+      method: 'post',
+    },
+    params: {
+      fid: 0,
+      act: 1, // 1: 关注, 2: 取消关注
+      re_src: 11,
+      csrf: '',
+    },
+    afterHandle: AHS.J,
+  },
 }
 
 export default api
