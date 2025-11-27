@@ -85,7 +85,8 @@ const styleBySize = computed(() => {
     }
   }
   else {
-    cols += '3.5rem 1fr auto auto'
+    // 最后一列改为 3rem
+    cols += '3.5rem 1fr 4rem 3rem'
     return {
       wrapper: `grid gap-4 items-center`,
       gridTemplateColumns: cols,
@@ -163,13 +164,12 @@ function handleSingerDetail(singerMid) {
     </div>
 
     <!-- Time -->
-    <div class="text-sm text-gray-500 tabular-nums">
+    <div class="text-sm text-gray-500 tabular-nums text-right">
       {{ (duration || 0) }}
     </div>
 
     <!-- 操作 -->
-    <div class="flex items-center gap-4 text-lg text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity pr-2">
-      <!-- <div v-if="later" class="i-mingcute:time-line hover:text-white" title="稍后播放" @click.stop="addToLater" /> -->
+    <div class="flex items-center justify-end gap-3 text-lg text-gray-400 pr-2 opacity-0 group-hover:opacity-100 transition-opacity">
       <div v-if="star" class="i-mingcute:heart-line hover:text-white" title="收藏" @click.stop="PLstore.startAddSong(props.song)" />
       <div v-if="del" class="i-mingcute:delete-2-line hover:text-red-500" title="删除" @click.stop="emit('delete-song', props.song)" />
     </div>

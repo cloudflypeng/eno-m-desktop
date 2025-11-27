@@ -155,7 +155,7 @@ async function handleSearch() {
       ref="scrollRef" 
       class="flex-1 w-full overflow-y-auto scrollbar-styled pb-8"
     >
-      <div class="grid grid-cols-[3rem_3.5rem_1fr_4rem_6rem] gap-4 text-[#b3b3b3] text-sm border-b border-[#ffffff1a] pb-2 mb-4 px-4 sticky top-0 bg-[#121212] z-10">
+      <div class="grid grid-cols-[3rem_3.5rem_1fr_4rem_3rem] gap-4 text-[#b3b3b3] text-sm border-b border-[#ffffff1a] pb-2 mb-4 px-4 sticky top-0 bg-[#121212] z-10">
         <div class="text-center">#</div>
         <div></div>
         <div>标题</div>
@@ -190,6 +190,6 @@ async function handleSearch() {
 :deep(.song-item) {
   /* Override the grid layout to match header if needed, but SongItem has its own defaults */
   /* We force specific columns to align with header */
-  grid-template-columns: 3rem 3.5rem 1fr 4rem 6rem !important;
+  grid-template-columns: 3rem 3.5rem 1fr 4rem 3rem !important;
 }
 </style>

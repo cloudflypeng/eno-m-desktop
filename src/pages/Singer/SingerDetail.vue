@@ -199,7 +199,7 @@ function startExportPoster() {
         </div>
       </div>
     </div>
-    <div class="grid grid-cols-[3rem_3.5rem_1fr_4rem_6rem] gap-4 text-[#b3b3b3] text-sm border-b border-[#ffffff1a] pb-2 px-12">
+    <div class="grid grid-cols-[3rem_3.5rem_1fr_4rem_3rem] gap-4 text-[#b3b3b3] text-sm border-b border-[#ffffff1a] pb-2 px-12">
       <div class="text-center">#</div>
       <div></div>
       <div>标题</div>
@@ -232,7 +232,7 @@ function startExportPoster() {
 /* 自定义 SongItem 样式覆盖 */
 :deep(.song-item) {
   /* 强制对齐 header */
-  grid-template-columns: 3rem 3.5rem 1fr 4rem 6rem !important;
+  grid-template-columns: 3rem 3.5rem 1fr 4rem 3rem !important;
   padding: 0.5rem 1rem;
 }
 </style>
