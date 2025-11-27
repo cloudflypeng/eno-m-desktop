@@ -1,6 +1,4 @@
 import { encWbi, getWbiKeys } from './wbi'
-// @ts-ignore
-import { invokeBiliApi, BLBL } from './bili'
 
 // 简单的防风控限流器
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))

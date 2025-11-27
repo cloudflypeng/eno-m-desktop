@@ -11,7 +11,6 @@ import ShareCard from '../sharecard/index.vue'
 // store
 import { VIDEO_MODE, useBlblStore } from '../../blbl/store'
 import { usePlaylistStore } from '../../playlist/store.ts'
-import { EQService, useEqStore } from '../Eq/store'
 import Video from './video.vue'
 import LoopSwitch from './LoopSwitch.vue'
 
@@ -21,7 +20,6 @@ import useControl from './keys'
 import { invokeBiliApi, BLBL } from '~/api/bili'
 
 const PLstore = usePlaylistStore()
-const eqStore = useEqStore()
 const store = useBlblStore()
 
 // 注入全局播放列表控制
@@ -330,17 +328,6 @@ function openBlTab() {
 function changeVideoMode() {
   store.videoMode = store.videoMode === VIDEO_MODE.FLOATING ? VIDEO_MODE.DRAWER : VIDEO_MODE.FLOATING
 }
-// 初始化eq
-watch(() => store.howl, () => {
-  if (store.howl) {
-    store.eqService = new EQService()
-  }
-})
-watch(() => eqStore.currentPreset, () => {
-  if (store.eqService) {
-    store.eqService.updateFilters(eqStore.values)
-  }
-})
 </script>
 
 <template>
