@@ -1,79 +1,69 @@
-# electron-vite-vue
+# Eno-M Desktop
 
-🥳 Really simple `Electron` + `Vue` + `Vite` boilerplate.
+<div align="center">
+  <img src="public/download.png" width="120" height="120" alt="Icon">
+  <p>Based on Bilibili Audio, a beautiful desktop music player.</p>
+  <p>基于 Bilibili 的高颜值桌面音乐播放器</p>
+</div>
 
-<!-- [![awesome-vite](https://awesome.re/mentioned-badge.svg)](https://github.com/vitejs/awesome-vite) -->
-<!-- [![Netlify Status](https://api.netlify.com/api/v1/badges/ae3863e3-1aec-4eb1-8f9f-1890af56929d/deploy-status)](https://app.netlify.com/sites/electron-vite/deploys) -->
-<!-- [![GitHub license](https://img.shields.io/github/license/caoxiemeihao/electron-vite-vue)](https://github.com/electron-vite/electron-vite-vue/blob/main/LICENSE) -->
-<!-- [![GitHub stars](https://img.shields.io/github/stars/caoxiemeihao/electron-vite-vue?color=fa6470)](https://github.com/electron-vite/electron-vite-vue) -->
-<!-- [![GitHub forks](https://img.shields.io/github/forks/caoxiemeihao/electron-vite-vue)](https://github.com/electron-vite/electron-vite-vue) -->
-[![GitHub Build](https://github.com/electron-vite/electron-vite-vue/actions/workflows/build.yml/badge.svg)](https://github.com/electron-vite/electron-vite-vue/actions/workflows/build.yml)
-[![GitHub Discord](https://img.shields.io/badge/chat-discord-blue?logo=discord)](https://discord.gg/sRqjYpEAUK)
+---
 
-## Features
+<!-- Update your username if 'meanc' is incorrect -->
+[![Build Status](https://github.com/meanc/eno-m-desktop/actions/workflows/build.yml/badge.svg)](https://github.com/meanc/eno-m-desktop/actions/workflows/build.yml)
+[![License](https://img.shields.io/github/license/meanc/eno-m-desktop)](LICENSE)
 
-📦 Out of the box  
-🎯 Based on the official [template-vue-ts](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-vue-ts), less invasive  
-🌱 Extensible, really simple directory structure  
-💪 Support using Node.js API in Electron-Renderer  
-🔩 Support C/C++ native addons  
-🖥 It's easy to implement multiple windows  
+## ✨ Features
 
-## Quick Setup
+- 🎵 **Bilibili 音乐播放**：直接播放 B 站音频和视频内容
+- 📺 **视频模式**：支持悬浮窗和侧边栏视频播放
+- ❤️ **收藏夹同步**：登录后可管理 B 站收藏夹
+- 🎨 **歌单海报生成**：自定义生成精美歌单海报
+- 🎚️ **EQ 均衡器**：内置多种音效预设（Pop, Rock, Jazz 等）
+- 🔍 **搜索**：支持关键词和 BV 号搜索
+- 🖥️ **跨平台**：支持 Windows 和 macOS
 
-```sh
-# clone the project
-git clone https://github.com/electron-vite/electron-vite-vue.git
+## 📥 Download
 
-# enter the project directory
-cd electron-vite-vue
+前往 [Releases](https://github.com/meanc/eno-m-desktop/releases) 页面下载最新版本。
 
-# install dependency
-npm install
+- **macOS**: `.dmg`
+- **Windows**: `.exe`
 
-# develop
-npm run dev
+## 🛠️ Development
+
+### Prerequisites
+
+- Node.js 20+
+- pnpm 9+
+
+### Setup
+
+```bash
+# Clone repository
+git clone https://github.com/meanc/eno-m-desktop.git
+cd eno-m-desktop
+
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm dev
 ```
 
-## Debug
+### Build
 
-![electron-vite-react-debug.gif](https://github.com/electron-vite/electron-vite-react/blob/main/electron-vite-react-debug.gif?raw=true)
-
-## Directory
-
-```diff
-+ ├─┬ electron
-+ │ ├─┬ main
-+ │ │ └── index.ts    entry of Electron-Main
-+ │ └─┬ preload
-+ │   └── index.ts    entry of Preload-Scripts
-  ├─┬ src
-  │ └── main.ts       entry of Electron-Renderer
-  ├── index.html
-  ├── package.json
-  └── vite.config.ts
+```bash
+# Build for production
+pnpm build
 ```
 
-<!--
-## Be aware
+## 🏗️ Tech Stack
 
-🚨 By default, this template integrates Node.js in the Renderer process. If you don't need it, you just remove the option below. [Because it will modify the default config of Vite](https://github.com/electron-vite/vite-plugin-electron-renderer#config-presets-opinionated).
+- **Core**: [Electron](https://www.electronjs.org/), [Vite](https://vitejs.dev/), [Vue 3](https://vuejs.org/)
+- **UI**: [UnoCSS](https://unocss.dev/)
+- **State Management**: [Pinia](https://pinia.vuejs.org/)
+- **Audio**: [Howler.js](https://howlerjs.com/)
 
-```diff
-# vite.config.ts
+## 📄 License
 
-export default {
-  plugins: [
--   // Use Node.js API in the Renderer-process
--   renderer({
--     nodeIntegration: true,
--   }),
-  ],
-}
-```
--->
-
-## FAQ
-
-- [C/C++ addons, Node.js modules - Pre-Bundling](https://github.com/electron-vite/vite-plugin-electron-renderer#dependency-pre-bundling)
-- [dependencies vs devDependencies](https://github.com/electron-vite/vite-plugin-electron-renderer#dependencies-vs-devdependencies)
+[MIT](LICENSE) © 2024-present [meanc](https://github.com/meanc)
