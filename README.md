@@ -67,3 +67,19 @@ pnpm build
 ## 📄 License
 
 [MIT](LICENSE) © 2024-present [meanc](https://github.com/meanc)
+
+## ⚠️ Installation Issues
+
+### macOS: "App is damaged" / "无法打开"
+
+Since the app is not signed with an Apple Developer Certificate (requires $99/year), macOS will block it by default.
+
+**Solution:**
+
+1. Open Terminal.
+2. Run the following command:
+   ```bash
+   sudo xattr -r -d com.apple.quarantine /Applications/Eno-M\ Desktop.app
+   ```
+   *(Make sure you have moved the app to `/Applications` folder first)*
+
