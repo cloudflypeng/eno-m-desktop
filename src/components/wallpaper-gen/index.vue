@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Dialog from '~/components/dialog/index.vue'
-import { usePlaylistStore } from '~/playlist/store'
+import { usePlaylistStore } from '../../playlist/store'
 import { ref, watch } from 'vue'
 
 interface Point {

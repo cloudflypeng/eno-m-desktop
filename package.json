@@ -40,11 +40,15 @@
     "vite-plugin-electron": "^0.29.0",
     "vite-plugin-electron-renderer": "^0.14.6",
     "vue": "^3.5.25",
+    "vue-demi": "^0.14.7",
     "vue-tsc": "^2.2.12"
   },
   "dependencies": {
     "@iconify/json": "^2.2.410",
     "@meanc/webext-fetch": "^0.0.3",
+    "@types/howler": "^2.2.11",
+    "@types/md5": "^2.3.5",
+    "@types/webextension-polyfill": "^0.10.7",
     "@vueuse/core": "^13.9.0",
     "@vueuse/math": "^13.9.0",
     "classnames": "^2.5.1",

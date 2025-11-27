@@ -98,7 +98,7 @@ export class EQService {
     const frequencies = [60, 170, 350, 1000, 3500, 10000]
 
     frequencies.forEach((freq) => {
-      const filter = this.ctx.createBiquadFilter()
+      const filter = this.ctx!.createBiquadFilter()
       filter.type = 'peaking'
       filter.frequency.value = freq
       filter.Q.value = 1
@@ -115,7 +115,7 @@ export class EQService {
     // 连接到 Howler 的主节点
     Howler.masterGain.disconnect()
     Howler.masterGain.connect(this.filters[0])
-    this.filters[this.filters.length - 1].connect(this.ctx.destination)
+    this.filters[this.filters.length - 1].connect(this.ctx!.destination)
 
     this.initialized = true
   }
