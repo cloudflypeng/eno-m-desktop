@@ -22,7 +22,6 @@ interface MusicRankItem {
 
 interface State {
 	howl: any;
-	eqService: any;
 	play: object;
 	playList: RemovableRef<object[]>;
 	count: number;
@@ -47,7 +46,6 @@ interface State {
 export const useBlblStore = defineStore("blbl", {
 	state: (): State => ({
 		howl: null,
-		eqService: null,
 		play: useStorage("playInfo", {}), // 当前播放的歌曲信息
 		playList: useStorage("playList", []), // 播放列表
 		count: 0,
@@ -64,8 +62,8 @@ export const useBlblStore = defineStore("blbl", {
 		// 热度榜单
 		hitList: useStorage("hitList", []),
 		currentHit: {
-      list: []
-    },
+			list: []
+		},
 		hit_ps: 10,
 		hit_pn: 1,
 		// 音乐排行榜
@@ -81,7 +79,7 @@ export const useBlblStore = defineStore("blbl", {
 		},
 		initBiliMusic() {
 			// 获取排行榜的列表
-      invokeBiliApi(BLBL.GET_MUSIC_RANK_LIST).then((res: any) => {
+			invokeBiliApi(BLBL.GET_MUSIC_RANK_LIST).then((res: any) => {
 				const rankObj = res.data.list;
 				let flatList: any[] = [];
 				// 按年份的借口,拍平
@@ -96,9 +94,9 @@ export const useBlblStore = defineStore("blbl", {
 		// 全站音乐榜
 		getRankById(id: number) {
 			if (!id) return;
-      invokeBiliApi(BLBL.GET_MUSIC_RANK, {
-					list_id: id,
-				})
+			invokeBiliApi(BLBL.GET_MUSIC_RANK, {
+				list_id: id,
+			})
 				.then((res: any) => {
 					const {
 						data: { list },
@@ -120,18 +118,18 @@ export const useBlblStore = defineStore("blbl", {
 				});
 		},
 		getrankList() {
-      invokeBiliApi(BLBL.GET_MENU_RANK, {
-					ps: 3,
-				})
+			invokeBiliApi(BLBL.GET_MENU_RANK, {
+				ps: 3,
+			})
 				.then((res: any) => {
 					this.rankList = res.data.data || [];
 				});
 		},
 		getHitList() {
-      invokeBiliApi(BLBL.GET_HIT_SONG, {
-					ps: this.hit_ps,
-					pn: this.hit_pn,
-				})
+			invokeBiliApi(BLBL.GET_HIT_SONG, {
+				ps: this.hit_ps,
+				pn: this.hit_pn,
+			})
 				.then((res: any) => {
 					this.hitList = res.data.data;
 				});
@@ -143,9 +141,9 @@ export const useBlblStore = defineStore("blbl", {
 			if (!isInList) this.playList.push(song);
 		},
 		getHitDetailList(sid: number) {
-      invokeBiliApi(BLBL.GET_HIT_SONG_LIST, {
-					sid,
-				})
+			invokeBiliApi(BLBL.GET_HIT_SONG_LIST, {
+				sid,
+			})
 				.then((res: any) => {
 					this.currentHit.list = res.data.data;
 				});

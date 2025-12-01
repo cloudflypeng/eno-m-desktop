@@ -19,50 +19,68 @@ function goToRank() {
 </script>
 
 <template>
-  <section class="w-full h-full overflow-auto pb-30 scrollbar-hide px-6 pt-6 bg-[#121212]">
-    <!-- 顶部欢迎语 (可选) -->
-    <h2 class="text-3xl font-bold text-white mb-6">Good evening</h2>
+  <section class="w-full h-full overflow-auto pb-30 scrollbar-hide px-6 pt-6 bg-[#0f0f0f]">
+    <!-- 顶部欢迎语 -->
+    <h2 class="text-4xl font-bold text-white mb-8">Good evening</h2>
 
     <!-- 推荐板块 (Bilibili Music Rank 入口) -->
-    <div class="flex mb-8">
-      <!-- Bilibili Music Rank Card -->
+    <div class="mb-12">
       <div 
-        class="flex items-center bg-[#282828] hover:bg-[#3e3e3e] rounded-md overflow-hidden cursor-pointer transition-colors group h-20 shadow-lg"
+        class="group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 bg-gradient-to-b from-[#282828] to-[#1a1a1a] hover:bg-gradient-to-b hover:from-[#333333] hover:to-[#1f1f1f] shadow-lg hover:shadow-2xl h-32"
         @click="goToRank"
       >
-        <div class="w-20 h-20 bg-gradient-to-br from-pink-500 to-orange-400 flex items-center justify-center flex-shrink-0 shadow-md">
-           <div class="i-mingcute:music-2-fill text-3xl text-white" />
+        <!-- 背景光晕效果 -->
+        <div 
+          class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40 z-10 group-hover:to-black/20 transition-all duration-300"
+        />
+        
+        <!-- 装饰背景 -->
+        <div class="absolute -top-1/4 -right-1/4 w-64 h-64 bg-gradient-to-br from-pink-500 to-orange-400 rounded-full blur-3xl opacity-0 group-hover:opacity-15 transition-opacity duration-500 z-0" />
+
+        <!-- 卡片内容 -->
+        <div class="relative h-full flex items-center justify-between px-6 z-20">
+          <div class="flex items-center gap-6">
+            <div class="w-24 h-24 bg-gradient-to-br from-pink-500 to-orange-400 rounded-lg flex items-center justify-center shadow-lg flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
+              <div class="i-mingcute:music-2-fill text-4xl text-white" />
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-white mb-1">Bilibili Music Rank</h3>
+              <p class="text-sm text-gray-400">发现最受欢迎的音乐</p>
+            </div>
+          </div>
+          
+          <div class="w-14 h-14 rounded-full bg-[#1db954] flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-[#1ed760] hover:scale-110 flex-shrink-0">
+            <div class="i-mingcute:play-fill text-black text-2xl pl-1" />
+          </div>
         </div>
-        <div class="flex items-center justify-between w-full px-4">
-           <span class="font-bold text-white text-base">Bilibili Music Rank</span>
-           <div class="w-10 h-10 rounded-full bg-[#1db954] flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity hover:scale-105">
-              <div class="i-mingcute:play-fill text-black text-xl pl-1" />
-           </div>
-        </div>
+
+        <!-- 边框光晕效果 -->
+        <div class="absolute inset-0 rounded-xl border border-gradient-to-r from-pink-500/30 to-orange-400/30 opacity-0 group-hover:opacity-40 transition-opacity duration-300 z-30" />
       </div>
-      <!-- 这里可以放置其他入口，例如 "我的收藏", "最近播放" 等 -->
     </div>
 
     <!-- 关注的歌手 -->
     <div class="mb-8">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-2xl font-bold text-white hover:underline cursor-pointer">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold text-white">
           关注的歌手
         </h3>
         <span 
-          class="text-xs font-bold text-[#b3b3b3] hover:underline cursor-pointer uppercase tracking-wider"
+          class="text-xs font-bold text-gray-400 hover:text-white cursor-pointer uppercase tracking-wider transition-colors"
           @click="$router.push('/singerList')"
         >
-          Show all
+          Show all →
         </span>
       </div>
       
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6 overflow-hidden">
-        <!-- 只显示前几个 -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 auto-rows-max">
+        <!-- 显示前6个 -->
         <SingerItem 
-          v-for="serid in PLstore.singers.slice(0, 5)" 
+          v-for="serid in PLstore.singers.slice(0, 6)" 
           :key="serid" 
           :singer-mid="serid" 
+          type="card-modern"
+          class="h-56"
         />
       </div>
     </div>

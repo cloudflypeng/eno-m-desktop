@@ -1,28 +1,21 @@
 <script lang="ts" setup>
 import type { song } from '~/playlist/store'
-import SongItem from '~/components/SongItem.vue'
 // @ts-ignore
 import { invokeBiliApi, BLBL } from '~/api/bili'
 
 import { useBlblStore } from '~/blbl/store'
 import { usePlaylistStore } from '~/playlist/store'
-import { inject } from 'vue'
+import { inject, computed } from 'vue'
+import { useRouter } from 'vue-router'
 
 const props = defineProps<{
   fav: fav
 }>()
 
+const router = useRouter()
 const store = useBlblStore()
 const PLStore = usePlaylistStore()
 const userInfo = inject('userInfo') as any
-
-const pn = ref(1)
-const mediaSong = ref<song[]>([])
-const status = reactive({
-  loading: false,
-  error: false,
-  open: false,
-})
 
 interface fav {
   attr: number
@@ -34,70 +27,50 @@ interface fav {
   media_count: number
 }
 
-async function handleClick() {
-  if (status.open) {
-    status.open = false
-    return
-  }
-  if (mediaSong.value.length > 0) {
-    status.open = !status.open
-    return
-  }
-  status.loading = true
-  status.open = true
-  pn.value = 1
-  mediaSong.value = []
-  getFavDataLoop()
+function handleCardClick() {
+  // 导航到收藏夹详情页面
+  router.push({
+    name: 'favDetail',
+    params: { favId: props.fav.id }
+  })
 }
 
-async function getFavDataLoop() {
+async function handlePlayClick(e: Event) {
+  e.stopPropagation()
+  
+  // 快速加载前10条歌曲进行播放
   try {
     const res = await invokeBiliApi(BLBL.GET_FAV_INFO, {
       media_id: props.fav.id,
-      pn: pn.value,
+      pn: 1,
     })
 
-    const { info, medias } = res.data
+    const { medias } = res.data
+    const songs: song[] = []
 
     if (Array.isArray(medias)) {
       medias.forEach((element: any) => {
-        // 防止重复添加
-        if (!mediaSong.value.some(s => s.id === (element.bvid || element.bv_id))) {
-            mediaSong.value.push({
-            title: element.title,
-            description: element.intro,
-            eno_song_type: 'bvid',
-            cover: element.cover,
-            author: element.upper.name,
-            duration: element.duration,
-            id: element.bvid || element.bv_id,
-            bvid: element.bvid || element.bv_id,
-            aid: element.id, // avid
-          })
-        }
+        songs.push({
+          title: element.title,
+          description: element.intro,
+          eno_song_type: 'bvid',
+          cover: element.cover,
+          author: element.upper.name,
+          duration: element.duration,
+          id: element.bvid || element.bv_id,
+          bvid: element.bvid || element.bv_id,
+          aid: element.id,
+        })
       })
     }
 
-    if (mediaSong.value.length < info.media_count && medias && medias.length > 0) {
-      pn.value++
-      getFavDataLoop()
+    if (songs.length > 0) {
+      store.play = songs[0]
+      store.playList = songs
     }
   } catch (error) {
     console.error('Failed to load fav list:', error)
   }
-}
-
-function handleReplacePlaylist() {
-  store.play = mediaSong.value[0]
-  store.playList = [...mediaSong.value]
-}
-
-function handleRemoveSong(song: song) {
-    PLStore.removeSongFromFav(props.fav.id, song).then(() => {
-        // 本地移除
-        const idx = mediaSong.value.findIndex(s => s.id === song.id)
-        if (idx > -1) mediaSong.value.splice(idx, 1)
-    })
 }
 
 // 判断是否是当前用户的收藏夹
@@ -107,38 +80,55 @@ const isOwner = computed(() => {
 </script>
 
 <template>
-  <div
-    class="mb-2 has-border rounded-lg transition-all duration-200 bg-[#282828] hover:bg-[#333]"
-  >
+  <div class="h-64 flex items-stretch">
     <div
-      class="w-full flex justify-between items-center cursor-pointer p-3"
-      @click="handleClick"
+      class="flex-1 group relative rounded-xl overflow-hidden cursor-pointer transition-all duration-300 bg-gradient-to-b from-[#282828] to-[#1a1a1a] hover:bg-gradient-to-b hover:from-[#333333] hover:to-[#1f1f1f] shadow-lg hover:shadow-2xl"
+      @click="handleCardClick"
     >
-      <div class="flex items-center gap-3 text-lg text-gray-200">
-        <div :class="`w-5 h-5 ${status.open ? 'i-mingcute:folder-open-2-fill' : 'i-mingcute:folder-fill'}`" />
-        <h2 class="max-w-[50vw] truncate font-bold" v-html="props.fav.title" />
-        <span class="text-sm text-gray-500">({{ props.fav.media_count }})</span>
-      </div>
-      <div class="flex gap-3 text-xl text-gray-400">
-        <div
-          class="i-mingcute:play-circle-line hover:text-[#1db954] transition-colors"
-          @click.stop="handleReplacePlaylist"
-        />
-      </div>
-    </div>
-    <div v-if="status.open" class="flex flex-col gap-1 max-h-[500px] overflow-y-auto scrollbar-styled px-2 pb-2">
-      <SongItem 
-        v-for="song in mediaSong" 
-        :key="song.id" 
-        :song="song" 
-        size="mini" 
-        :del="isOwner"
-        class="hover:bg-[#ffffff1a] rounded"
-        @delete-song="handleRemoveSong"
+      <!-- 背景光晕效果 -->
+      <div 
+        class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40 z-10 group-hover:to-black/20 transition-all duration-300"
       />
-      <div v-if="mediaSong.length === 0" class="text-center text-gray-500 py-4 text-sm">
-        暂无内容
+      
+      <!-- 装饰背景 -->
+      <div class="absolute -top-1/2 -right-1/2 w-96 h-96 bg-[#1db954] rounded-full blur-3xl opacity-0 group-hover:opacity-10 transition-opacity duration-500 z-0" />
+
+      <!-- 卡片内容 -->
+      <div class="relative h-full flex flex-col justify-between p-5 z-20">
+        <!-- 顶部装饰 -->
+        <div class="flex items-start justify-between mb-auto">
+          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[#1db954] to-[#1aa34a] flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+            <div class="i-mingcute:folder-fill text-white text-xl" />
+          </div>
+          <div class="flex flex-col items-end gap-1 ml-2">
+            <div class="text-gray-400 text-xs font-medium">收藏夹</div>
+            <div class="text-gray-400 text-sm font-bold">{{ props.fav.media_count }}</div>
+          </div>
+        </div>
+
+        <!-- 底部内容 -->
+        <div class="flex flex-col gap-4">
+          <!-- 标题 -->
+          <div>
+            <h3 class="text-white font-bold text-base line-clamp-2 mb-2 group-hover:text-[#1db954] transition-colors duration-300" v-html="props.fav.title" />
+            <p class="text-gray-400 text-sm">
+              {{ props.fav.media_count }} 首音频
+            </p>
+          </div>
+
+          <!-- 播放按钮 - 悬停时显示 -->
+          <button
+            class="w-12 h-12 rounded-full bg-[#1db954] text-black flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-[#1ed760] hover:scale-110 active:scale-95 flex-shrink-0"
+            @click="handlePlayClick"
+            title="播放"
+          >
+            <div class="i-mingcute:play-fill text-xl pl-1" />
+          </button>
+        </div>
       </div>
+
+      <!-- 边框光晕效果 -->
+      <div class="absolute inset-0 rounded-xl border border-[#1db954] opacity-0 group-hover:opacity-20 transition-opacity duration-300 z-30" />
     </div>
   </div>
 </template>

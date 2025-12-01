@@ -1,9 +1,10 @@
-import { app, BrowserWindow, shell, ipcMain, session } from 'electron'
+import { app, BrowserWindow, shell, ipcMain, session, dialog } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
 import { apiProxy } from '../bili/api/index'
 import { initCookie, setGlobalCookie } from '../bili/cookie'
+import { setupDownloadHandlers } from './download'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -77,7 +78,7 @@ const indexHtml = path.join(RENDERER_DIST, 'index.html')
 async function createWindow() {
   // 初始化 cookie
   initCookie()
-  
+
   win = new BrowserWindow({
     title: 'Main window',
     // icon: path.join(process.env.VITE_PUBLIC, 'favicon.ico'),
@@ -116,6 +117,7 @@ async function createWindow() {
 
 app.whenReady().then(() => {
   createWindow()
+  setupDownloadHandlers()
   // 拦截 B 站图片请求，设置 Referer 防止 403
   session.defaultSession.webRequest.onBeforeSendHeaders({
     urls: [
@@ -190,5 +192,26 @@ ipcMain.handle('bili-api', async (_, message) => {
   } catch (error) {
     console.error('Bili API invoke error:', error)
     throw error
+  }
+})
+
+// 选择下载目录
+ipcMain.handle('select-directory', async () => {
+  try {
+    const result = await dialog.showOpenDialog(win!, {
+      properties: ['openDirectory', 'createDirectory'],
+      title: '选择下载位置',
+      message: '请选择音乐下载目录',
+      defaultPath: app.getPath('downloads'),
+    })
+
+    if (!result.canceled && result.filePaths.length > 0) {
+      return { success: true, path: result.filePaths[0] }
+    } else {
+      return { success: false, path: null }
+    }
+  } catch (error: any) {
+    console.error('Failed to select directory:', error)
+    return { success: false, error: error.message }
   }
 })

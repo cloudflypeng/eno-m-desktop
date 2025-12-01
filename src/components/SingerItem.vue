@@ -12,7 +12,7 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  // 'card' | 'list' | 'simple'
+  // 'card' | 'card-modern' | 'list' | 'simple'
   type: {
     type: String,
     default: 'card'
@@ -88,6 +88,53 @@ function handleSingerDetail(singerMid) {
       <span class="text-white font-medium truncate text-sm">{{ name }}</span>
       <span class="text-xs text-[#a7a7a7] truncate">{{ desc }}</span>
     </div>
+  </div>
+
+  <!-- Modern Card Style (现代高级卡片，匹配媒体库) -->
+  <div
+    v-else-if="type === 'card-modern'"
+    :class="cn(
+      'relative h-56 w-full flex flex-col items-center justify-between p-5 rounded-xl bg-gradient-to-b from-[#282828] to-[#1a1a1a] hover:bg-gradient-to-b hover:from-[#333333] hover:to-[#1f1f1f] transition-all duration-300 cursor-pointer group shadow-lg hover:shadow-2xl overflow-hidden',
+      props.class
+    )"
+    @click.stop="handleSingerDetail(singerMid)"
+  >
+    <!-- 背景光晕效果 -->
+    <div 
+      class="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/40 z-10 group-hover:to-black/20 transition-all duration-300 rounded-xl pointer-events-none"
+    />
+    
+    <!-- 装饰背景 -->
+    <div class="absolute -top-1/4 -right-1/4 w-32 h-32 bg-[#1db954] rounded-full blur-3xl opacity-0 group-hover:opacity-10 transition-opacity duration-500 z-0" />
+
+    <!-- 卡片内容 -->
+    <div class="relative flex flex-col items-center justify-between w-full h-full z-20">
+      <!-- 头像 -->
+      <div class="relative w-24 h-24 shadow-lg rounded-full overflow-hidden flex-shrink-0 flex-grow-0">
+        <img
+          :src="avatar"
+          alt="singerAvatar"
+          class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+        >
+        <!-- 播放按钮 -->
+        <div class="absolute inset-0 w-full h-full flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity duration-300 rounded-full">
+          <div class="i-mingcute:play-fill text-white text-2xl pl-1" />
+        </div>
+      </div>
+
+      <!-- 信息 -->
+      <div class="flex flex-col items-center w-full flex-1 justify-center">
+        <h4 class="text-white font-bold text-sm line-clamp-1 group-hover:text-[#1db954] transition-colors duration-300 mt-2">
+          {{ name }}
+        </h4>
+        <p class="text-gray-400 text-xs mt-1 line-clamp-1">
+          {{ desc }}
+        </p>
+      </div>
+    </div>
+
+    <!-- 边框光晕效果 -->
+    <div class="absolute inset-0 rounded-xl border border-[#1db954] opacity-0 group-hover:opacity-20 transition-opacity duration-300 z-30 pointer-events-none" />
   </div>
 
   <!-- Old List Style (兼容旧的列表样式，如果需要) -->

@@ -53,20 +53,43 @@ function handleScroll(offset) {
 </script>
 
 <template>
-  <div v-if="songList.length" mt-5>
-    <h5 text="3xl $eno-text-1 fw-600" class="py-5 text-left px-10 flex items-end justify-between gap-3">
-      {{ singer.name }}
+  <div v-if="songList.length" class="mt-6 mb-8">
+    <div class="flex items-end justify-between mb-6 px-6">
+      <h3 class="text-2xl font-bold text-white hover:text-[#1db954] transition-colors cursor-pointer">
+        {{ singer.name }}
+      </h3>
       <ScrollButton :step="600" :handle-scroll="handleScroll" />
-    </h5>
-    <div :id="`singer-preview-${mid}`" ref="scrollRef" overflow-auto class="w-full h-48 relative">
-      <div class="absolute w-full h-full flex gap-5 px-10">
-        <div v-for="song in songList" :key="song.id" class="cursor-pointer h-45 flex-shrink-0 relative overflow-hidden scroll-group" @click="handleClick(song)">
-          <img :src="song.cover" class="h-40 mb-5 object-cover">
-          <div class="h-40 w-full flex flex justify-center items-center opacity-0 hover:opacity-100 bg-$eno-content bg-opacity-10 duration-300 transform" pos="absolute top-0 left-0">
-            <div class="i-mingcute:play-circle-line w-4rem text-5xl" />
+    </div>
+    <div :id="`singer-preview-${mid}`" ref="scrollRef" class="overflow-x-auto scrollbar-hide relative">
+      <div class="flex gap-4 px-6 pb-2">
+        <div 
+          v-for="song in songList" 
+          :key="song.id" 
+          class="group relative flex-shrink-0 w-40 h-48 rounded-lg overflow-hidden cursor-pointer transition-all duration-300 bg-[#181818] hover:bg-[#242424] shadow-lg hover:shadow-xl"
+          @click="handleClick(song)"
+        >
+          <!-- 背景光晕 -->
+          <div class="absolute -top-1/2 -right-1/2 w-48 h-48 bg-[#1db954] rounded-full blur-3xl opacity-0 group-hover:opacity-10 transition-opacity duration-500 z-0" />
+          
+          <!-- 图片 -->
+          <img 
+            :src="song.cover" 
+            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+            :alt="song.title"
+          >
+          
+          <!-- 播放按钮和遮罩 -->
+          <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
+            <div class="w-14 h-14 rounded-full bg-[#1db954] flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform duration-300 hover:bg-[#1ed760]">
+              <div class="i-mingcute:play-fill text-black text-2xl pl-1" />
+            </div>
           </div>
-          <div class="absolute top-41 truncate w-full scroll-text">
-            {{ song.title }}
+          
+          <!-- 标题 -->
+          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/50 to-transparent p-3 z-20">
+            <p class="text-white font-medium text-sm line-clamp-2 group-hover:text-[#1db954] transition-colors duration-300">
+              {{ song.title }}
+            </p>
           </div>
         </div>
       </div>
@@ -74,30 +97,12 @@ function handleScroll(offset) {
   </div>
 </template>
 
-<style>
-.scroll-text {
-  white-space: nowrap;          /* 不换行 */
-  overflow: hidden;             /* 隐藏超出部分 */
-  text-overflow: ellipsis;      /* 使用省略号表示溢出文本 */
-  transition: all 0.3s;         /* 平滑过渡效果 */
+<style scoped>
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
 }
-
-.scrollAnim {
-  animation: scroll 5s linear infinite; /* 添加滚动动画 */
-}
-
-.scroll-group:hover .scroll-text {
-  white-space: nowrap;
-  overflow: visible;
-  animation: scroll 5s linear infinite; /* 添加滚动动画 */
-}
-
-@keyframes scroll {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-100%);
-  }
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 </style>

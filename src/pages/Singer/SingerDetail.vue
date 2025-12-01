@@ -10,7 +10,9 @@ import { useBlblStore } from '~/blbl/store.ts'
 import { usePlaylistStore } from '~/playlist/store'
 import Loading from '~/components/loading/index.vue'
 import Message from '~/components/message'
+import { useDownloadStore } from '~/store/downloadStore'
 import { average } from 'color.js'
+import BulkDownloadDialog from '~/components/BulkDownloadDialog.vue'
 
 const route = useRoute()
 const PLstore = usePlaylistStore()
@@ -59,6 +61,17 @@ const page = ref({
   count: 0,
 })
 const listRef = ref(null)
+
+// bulk download state
+const downloadStore = useDownloadStore()
+const showBulkDialog = ref(false)
+const isPreparingBulk = ref(false)
+const bulkSongList = ref([])
+const bulkDownloadIndex = ref(0)
+const bulkDownloading = ref(false)
+const bulkCancel = ref(false)
+const bulkSelectAll = ref(true)
+const bulkConcurrency = ref(3)  // ✅ 并发下载数：3 个
 
 // 滚动加载 - 绑定到具体的列表容器
 useInfiniteScroll(
@@ -147,112 +160,412 @@ function startExportPoster() {
   PLstore.isShowPoster = true
   PLstore.posters = renderList.value.map(item => item.cover)
 }
+
+function sleep(ms = 500) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+// ✅ 并发控制函数 - 限制同时进行的下载任务数
+async function runWithConcurrency(tasks, concurrency = 3) {
+  const results = []
+  const executing = []
+  let index = 0
+
+  for (const [i, task] of tasks.entries()) {
+    const promise = Promise.resolve().then(() => task()).then(result => {
+      executing.splice(executing.indexOf(promise), 1)
+      return result
+    })
+    
+    results.push(promise)
+    executing.push(promise)
+    
+    if (executing.length >= concurrency) {
+      await Promise.race(executing)
+    }
+  }
+
+  return Promise.all(results)
+}
+
+// 获取单首歌曲可下载的音频 URL（复用 Play.vue 的逻辑）
+async function getSongPlayUrl(item) {
+  try {
+    if (item.eno_song_type === 'bvid') {
+      const res = await invokeBiliApi(BLBL.GET_VIDEO_INFO, { bvid: item.bvid })
+      const { cid } = res.data
+      const dashRes = await invokeBiliApi(BLBL.GET_AUDIO_OF_VIDEO, { cid, bvid: item.bvid })
+      const dash = dashRes.data.dash
+      const url = dash.audio?.[0]?.baseUrl || dash.audio?.[0]?.backup_url?.[0] || ''
+      return { ...item, url, dash }
+    }
+
+    // fallback: try GET_AUDIO_OF_VIDEO if cid exists
+    if (item.cid) {
+      const dashRes = await invokeBiliApi(BLBL.GET_AUDIO_OF_VIDEO, { cid: item.cid, bvid: item.bvid })
+      const dash = dashRes.data.dash
+      const url = dash.audio?.[0]?.baseUrl || dash.audio?.[0]?.backup_url?.[0] || ''
+      return { ...item, url, dash }
+    }
+
+    // 如果类型是 sid 或其他，尽量调用 GET_SONG
+    const sidRes = await invokeBiliApi(BLBL.GET_SONG, { sid: item.id })
+    const url = sidRes.data?.cdns?.[0] || ''
+    return { ...item, url }
+  } catch (e) {
+    console.error('getSongPlayUrl error', e)
+    return item
+  }
+}
+
+// 分页抓取歌手所有作品（带速率限制），返回扁平化列表
+async function fetchAllSongsForMid(mid) {
+  const all = []
+  let pn = 1
+  const ps = 25
+  let total = Infinity
+
+  while ((pn - 1) * ps < total) {
+    try {
+      const res = await invokeBiliApi(BLBL.GET_USER_ARC, { mid, pn, ps })
+      const content = res.data
+      const { page: c_page, list } = content
+      total = c_page.count || total
+      const videoList = list.vlist.map(item => ({
+        id: item.bvid,
+        eno_song_type: 'bvid',
+        cover: `${item.pic}`,
+        title: item.title,
+        description: item.description,
+        author: item.author,
+        duration: item.length || 0,
+        bvid: item.bvid,
+      }))
+      all.push(...videoList)
+      pn += 1
+      // 不要请求得太快
+      await sleep(400)
+    } catch (e) {
+      console.error('fetchAllSongsForMid error', e)
+      break
+    }
+  }
+
+  return all
+}
+
+// 打开准备批量下载（先获取所有歌曲并在对话框中展示）
+async function prepareBulkDownload() {
+  if (!currentMid.value) {
+    Message.show({ type: 'error', message: '无效的歌手 ID' })
+    return
+  }
+
+  // 先打开对话框，再在对话框中加载列表
+  showBulkDialog.value = true
+  isPreparingBulk.value = true
+  bulkSongList.value = []
+  try {
+    const all = await fetchAllSongsForMid(currentMid.value)
+    // 包装为带状态和勾选的对象
+    bulkSongList.value = all.map(s => ({ ...s, selected: true, status: 'pending' }))
+    
+    // ✅ 预检查哪些文件已存在
+    try {
+      const fileNames = bulkSongList.value.map(s => ({
+        fileName: s.title,
+        author: s.author
+      }))
+      const existsMap = await window.ipcRenderer.invoke('check-files-exist', 
+        fileNames,
+        downloadStore.config.downloadPath,
+        downloadStore.config.createAuthorFolder
+      )
+      
+      // 标记已存在的文件
+      bulkSongList.value.forEach(song => {
+        if (existsMap[song.title]) {
+          song.status = 'existed'  // 标记为已存在
+        }
+      })
+    } catch (err) {
+      console.warn('Failed to check file existence:', err)
+      // 继续执行，忽略预检查错误
+    }
+  } catch (e) {
+    console.error(e)
+    Message.show({ type: 'error', message: '获取歌曲列表失败' })
+  } finally {
+    isPreparingBulk.value = false
+  }
+}
+
+// 按序下载所有歌曲（每首下载后稍作等待）
+async function confirmBulkDownload() {
+  if (!bulkSongList.value.length) return
+  bulkDownloading.value = true
+  bulkCancel.value = false
+  bulkDownloadIndex.value = 0
+
+  const toDownload = bulkSongList.value.filter(s => s.selected)
+  
+  // ✅ 并发下载：创建下载任务列表
+  const downloadTasks = toDownload.map((item, i) => async () => {
+    if (bulkCancel.value) {
+      return { success: false, item, skipped: false }
+    }
+
+    const idx = bulkSongList.value.findIndex(s => s.id === item.id)
+    
+    // ✅ 如果文件已存在，跳过下载
+    if (item.status === 'existed') {
+      if (idx >= 0) bulkSongList.value[idx].status = 'success'
+      bulkDownloadIndex.value = i + 1
+      Message.show({ type: 'info', message: `已存在（跳过）：${item.title}`, duration: 2000 })
+      return { success: true, item, skipped: true }
+    }
+    
+    if (idx >= 0) bulkSongList.value[idx].status = 'downloading'
+    bulkDownloadIndex.value = i + 1
+
+    try {
+      // 获取可下载 URL
+      const playItem = await getSongPlayUrl(item)
+      const url = playItem.url
+      if (!url) {
+        Message.show({ type: 'error', message: `无法获取 ${item.title} 的下载地址` })
+        if (idx >= 0) bulkSongList.value[idx].status = 'failed'
+        return { success: false, item, skipped: false }
+      }
+
+      const fileName = `${item.author || 'Unknown'} - ${item.title}`.replace(/[/\\?*:|"<>]/g, '_')
+
+      const result = await window.ipcRenderer.invoke('download-song', {
+        url,
+        fileName: item.title,
+        author: item.author,
+        basePath: downloadStore.config.downloadPath,
+        createAuthorFolder: downloadStore.config.createAuthorFolder,
+      })
+
+      if (result?.success) {
+        if (idx >= 0) bulkSongList.value[idx].status = 'success'
+        const message = result.skipped ? `已存在（跳过）：${item.title}` : `已下载：${item.title}`
+        Message.show({ type: 'success', message, duration: 3000 })
+        return { success: true, item, skipped: result.skipped }
+      } else {
+        if (idx >= 0) bulkSongList.value[idx].status = 'failed'
+        Message.show({ type: 'error', message: `下载失败：${item.title}` })
+        return { success: false, item, skipped: false }
+      }
+    } catch (e) {
+      console.error('bulk download error', e)
+      Message.show({ type: 'error', message: `下载异常：${item.title}` })
+      if (idx >= 0) bulkSongList.value[idx].status = 'failed'
+      return { success: false, item, skipped: false }
+    }
+  })
+
+  // ✅ 使用并发控制执行下载（3 个并发）
+  try {
+    await runWithConcurrency(downloadTasks, bulkConcurrency.value)
+    Message.show({ type: 'success', message: '批量下载任务已完成' })
+  } catch (error) {
+    console.error('Concurrent download error:', error)
+    Message.show({ type: 'error', message: '批量下载发生错误' })
+  }
+
+  bulkDownloading.value = false
+  showBulkDialog.value = false
+}
+
+function closeBulkDialog() {
+  showBulkDialog.value = false
+}
+
+function toggleSelectAll() {
+  bulkSelectAll.value = !bulkSelectAll.value
+  bulkSongList.value.forEach(s => (s.selected = bulkSelectAll.value))
+}
+
+function toggleSelect(idx) {
+  if (bulkSongList.value[idx]) {
+    bulkSongList.value[idx].selected = !bulkSongList.value[idx].selected
+  }
+  bulkSelectAll.value = bulkSongList.value.every(s => s.selected)
+}
+
+function onBulkItemChange(idx, e) {
+  // 从事件对象获取 checked 值
+  const checked = e.target.checked
+  if (bulkSongList.value[idx]) {
+    bulkSongList.value[idx].selected = checked
+  }
+  // 更新全选状态
+  bulkSelectAll.value = bulkSongList.value.every(s => s.selected)
+}
+
+function stopBulkDownload() {
+  if (!bulkDownloading.value) {
+    showBulkDialog.value = false
+    return
+  }
+  bulkCancel.value = true
+  Message.show({ type: 'info', message: '正在停止批量下载，当前下载会在完成后停止' })
+}
 </script>
 
 <template>
-  <!-- 页面主容器：占据 100% 高度，Flex 布局 -->
-  <div class="w-full h-[calc(80vh)] flex flex-col bg-[#121212] relative overflow-hidden">
+  <!-- 页面主容器 -->
+  <div class="w-full h-full flex flex-col bg-[#121212] relative overflow-hidden">
     
     <!-- 顶部背景 -->
     <div 
-      class="absolute top-0 left-0 w-full h-[300px] z-0 pointer-events-none transition-colors duration-500 ease-in-out"
-      :style="{ background: `linear-gradient(to bottom, ${headerColor}, #121212)` }"
-    ></div>
+      class="absolute top-0 left-0 w-full h-80 z-0 pointer-events-none transition-colors duration-500 ease-in-out"
+      :style="{ background: `linear-gradient(to bottom, ${headerColor}40, #121212)` }"
+    />
 
-    <!-- 固定头部区域 (不滚动) -->
-    <div class="shrink-0 relative z-10">
-      <!-- 信息头 -->
-      <div class="px-8 pt-6 flex items-end gap-6 pb-6">
+    <!-- 固定头部区域 -->
+    <div class="shrink-0 relative z-10 px-8 pt-6 pb-8">
+      <!-- 歌手信息 -->
+      <div class="flex items-end gap-8 mb-8">
+        <!-- 头像 -->
         <img
           :src="info?.face"
-          class="h-52 w-52 object-cover rounded-full shadow-2xl"
+          class="h-40 w-40 object-cover rounded-2xl shadow-2xl border-2 border-[#1db954]/30"
         >
-        <div class="flex flex-col gap-2 mb-2 text-white">
-          <div class="flex items-center gap-2 text-sm font-bold uppercase">
-            <div class="i-mingcute:certificate-fill text-blue-400" v-if="info?.official?.role"></div>
+        
+        <!-- 信息 -->
+        <div class="flex flex-col gap-3 flex-1">
+          <div v-if="info?.official?.role" class="flex items-center gap-2 text-sm font-bold text-[#1db954] uppercase tracking-widest">
+            <div class="i-mingcute:certificate-fill text-lg" />
             <span>{{ info?.official?.title || 'Verified Artist' }}</span>
           </div>
-          <h1 class="text-7xl font-black tracking-tighter">
+          
+          <h1 class="text-display">
             {{ info?.name }}
           </h1>
-          <div class="flex items-center gap-4 text-sm font-medium mt-4">
-             <span>{{ page.count }} 首歌曲</span>
-             <a 
-               :href="`https://space.bilibili.com/${currentMid}`" 
-               target="_blank"
-               class="hover:underline opacity-80 hover:opacity-100 flex items-center gap-1"
-             >
-                Bilibili 主页 <div class="i-mingcute:external-link-line"></div>
-             </a>
+          
+          <div class="flex items-center gap-6 text-body-small">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-white">{{ page.count }}</span>
+              <span>首音乐作品</span>
+            </div>
+            <a 
+              :href="`https://space.bilibili.com/${currentMid}`"
+              target="_blank"
+              class="flex items-center gap-2 text-[#1db954] hover:text-[#1ed760] transition-colors"
+            >
+              <span>Bilibili 主页</span>
+              <div class="i-mingcute:external-link-line" />
+            </a>
+          <button
+            :class="[
+              'transition-all duration-300 tracking-widest',
+              isFollowed 
+                ? 'border-[#1db954] text-[#1db954]/70 hover:text-[#1db954]'
+                : 'border-gray-500 text-white/70 hover:border-white hover:text-[#ffffff]'
+            ]"
+            @click="handleFollow"
+          >
+            <div class="flex items-center gap-2">
+              <div :class="isFollowed ? 'i-mingcute:check-line' : 'i-mingcute:add-line'" />
+              <span>{{ isFollowed ? 'Following' : 'Follow' }}</span>
+            </div>
+          </button>
           </div>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="flex items-center gap-3 flex-shrink-0">
+          <button
+            class="btn-primary h-14 w-14 px-5 flex-center flex-shrink-0"
+            @click="handlePlayUser"
+            title="播放全部"
+          >
+            <div class="i-mingcute:play-fill text-4xl" />
+          </button>
         </div>
       </div>
 
-      <!-- 操作栏 -->
-      <div class="bg-[#121212] px-8 py-4 flex items-center justify-between">
-        <div class="flex items-center gap-6">
-           <div 
-             class="w-14 h-14 rounded-full bg-[#1db954] flex items-center justify-center shadow-lg cursor-pointer hover:scale-105 hover:bg-[#1ed760] transition-all"
-             @click="handlePlayUser"
-           >
-              <div class="i-mingcute:play-fill text-black text-3xl pl-1"></div>
-           </div>
-           
-           <button
-            class="px-4 py-1.5 rounded-full border border-[#727272] hover:border-white text-sm font-bold hover:scale-105 transition-all text-white uppercase tracking-wider flex items-center gap-2"
-            @click="handleFollow"
-          >
-            <div :class="isFollowed ? 'i-mingcute:check-line' : 'i-mingcute:add-line'" class="text-lg" />
-            {{ isFollowed ? 'Following' : 'Follow' }}
-          </button>
-
-           <button
-            class="px-4 py-1.5 rounded-full border border-[#727272] hover:border-white text-sm font-bold hover:scale-105 transition-all text-white uppercase tracking-wider"
-            @click="startExportPoster"
-          >
-            Export Poster
-          </button>
-        </div>
-
-        <!-- 搜索 -->
-        <div class="relative group">
+      <!-- 搜索栏 -->
+      <div class="flex items-center gap-4">
+        <div class="relative flex-1 max-w-md group">
           <div class="i-mingcute:search-line absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-white z-10" />
           <input
             v-model="keyword"
-            placeholder="搜索歌曲"
+            placeholder="搜索歌曲..."
             type="text"
-            class="w-48 h-9 pl-9 pr-4 rounded-full bg-[#282828] hover:bg-[#2a2a2a] focus:bg-[#333] text-sm text-white outline-none transition-all placeholder:text-gray-500"
+            class="w-full h-10 pl-9 pr-4 rounded-lg bg-[#282828] hover:bg-[#333333] focus:bg-[#333333] focus:border-[#1db954] border border-transparent text-white outline-none transition-all placeholder:text-gray-500"
             @keyup.enter="getSongs({ mid: currentMid, keyword })"
-          >
+          />
         </div>
+
+        <button
+          class="btn-ghost h-14 flex-center flex-shrink-0"
+          @click="prepareBulkDownload"
+          title="批量下载"
+        >
+          <div class="i-mingcute:download-2-fill text-md text-white" />
+        </button>
       </div>
     </div>
-    <div class="grid grid-cols-[3rem_3.5rem_1fr_4rem_3rem] gap-4 text-[#b3b3b3] text-sm border-b border-[#ffffff1a] pb-2 px-12">
-      <div class="text-center">#</div>
-      <div></div>
-      <div>标题</div>
-      <div class="i-mingcute:time-line text-lg justify-self-end mr-4"></div>
-      <div></div>
+
+    <!-- 歌曲列表标题 -->
+    <div class=" px-8 py-3 text-body-small text-gray-500 border-b border-[#ffffff1a] z-10 sticky top-0 bg-[#121212]/80 backdrop-blur-sm">
+      <div class="grid grid-cols-[3rem_3.5rem_1fr_4rem_3rem] gap-4">
+        <div class="text-center">#</div>
+        <div />
+        <div>标题</div>
+        <div class="flex-center mr-4">
+          <div class="i-mingcute:time-line text-lg" />
+        </div>
+        <div />
+      </div>
     </div>
-    <!-- 歌曲列表 (滚动区域) -->
+
+    <!-- 歌曲列表 -->
     <div 
-      class="flex-1 overflow-y-auto scrollbar-styled px-8 py-4 pb-10 z-10 min-h-0" 
+      class="flex-1 overflow-y-auto scrollbar-styled px-8 py-4 pb-10 z-10 min-h-0 max-h-[calc(100vh-520px)]" 
       ref="listRef"
     >
-      <div class="flex flex-col">
-         <SongItem 
-           v-for="(song, index) in renderList" 
-           :key="song.id" 
-           :song="song" 
-           :index="index + 1"
-           class="hover:bg-[#ffffff1a] rounded-md px-2"
-         >
-         </SongItem>
+      <div class="flex flex-col space-y-1">
+        <SongItem 
+          v-for="(song, index) in renderList" 
+          :key="song.id" 
+          :song="song" 
+          :index="index + 1"
+          class="hover:bg-[#1a1a1a] rounded-lg px-2 transition-colors"
+        />
       </div>
+      
       <Loading v-if="loading && !renderList.length" class="mt-10" />
-      <!-- 底部占位，防止最后的内容被遮挡 -->
-      <div class="h-10"></div>
+      
+      <!-- 空状态 -->
+      <div v-if="!loading && !renderList.length" class="flex flex-col items-center justify-center py-16">
+        <div class="i-mingcute:music-2-fill text-5xl mb-4 opacity-20" />
+        <p class="text-body-small">暂无音乐作品</p>
+      </div>
+      
+      <!-- 底部占位 -->
+      <div class="h-10" />
     </div>
+
+    <!-- 批量下载对话框组件 -->
+    <BulkDownloadDialog
+      :show="showBulkDialog"
+      :song-list="bulkSongList"
+      :is-loading="isPreparingBulk"
+      :is-downloading="bulkDownloading"
+      :download-index="bulkDownloadIndex"
+      :select-all="bulkSelectAll"
+      @close="closeBulkDialog"
+      @toggle-select-all="toggleSelectAll"
+      @toggle-select="toggleSelect"
+      @item-change="onBulkItemChange"
+      @start-download="confirmBulkDownload"
+      @stop-download="stopBulkDownload"
+    />
   </div>
 </template>
 

@@ -13,6 +13,10 @@ const libraryTabs = [
   { icon: 'i-mingcute:user-star-fill', title: '关注的音乐人', mode: 'singerList' },
 ]
 
+const settingTabs = [
+  { icon: 'i-mingcute:settings-3-fill', title: '设置', mode: 'setting' },
+]
+
 const panelClass = "bg-[#121212] rounded-lg overflow-hidden flex flex-col"
 </script>
 
@@ -54,6 +58,17 @@ const panelClass = "bg-[#121212] rounded-lg overflow-hidden flex flex-col"
           />
         </div>
       </div>
+    </div>
+
+    <!-- 底部设置区 -->
+    <div :class="cn(panelClass, 'p-3 gap-2')">
+      <TabItem 
+        v-for="tab in settingTabs" 
+        :key="tab.mode" 
+        :tab="tab" 
+        :open="true"
+        class="font-bold hover:text-white transition-colors" 
+      />
     </div>
   </aside>
 </template>

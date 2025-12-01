@@ -24,6 +24,11 @@ const router = createRouter({
 			component: () => import("../playlist/index.vue"),
 		},
 		{
+			path: "/favDetail/:favId",
+			name: "favDetail",
+			component: () => import("../playlist/FavDetail.vue"),
+		},
+		{
 			path: "/singerList",
 			name: "singerList",
 			component: () => import("../pages/Singer/SingerList.vue"),
@@ -37,6 +42,11 @@ const router = createRouter({
 			path: "/rank",
 			name: "rank",
 			component: () => import("../views/Rank/index.vue"),
+		},
+		{
+			path: "/setting",
+			name: "setting",
+			component: () => import("../pages/Setting.vue"),
 		},
 	],
 });

@@ -157,13 +157,13 @@ export function setupDownloadHandlers() {
     try {
       const { fileName, author, basePath, createAuthorFolder } = options
       const { mp3Path } = getFinalSavePath(fileName, author, basePath, createAuthorFolder)
-      
+
       // ✅ 检查文件是否已存在
       const fileExists = fs.existsSync(mp3Path)
-      
+
       const filePath = await downloadAndConvert(options)
-      return { 
-        success: true, 
+      return {
+        success: true,
         filePath,
         skipped: fileExists  // 文件已存在则标记为 skipped
       }
@@ -173,9 +173,9 @@ export function setupDownloadHandlers() {
   })
 
   // ✅ 新增：检查多个文件是否已存在
-  ipcMain.handle('check-files-exist', (event, fileNames: Array<{fileName: string, author?: string}>, basePath?: string, createAuthorFolder?: boolean) => {
+  ipcMain.handle('check-files-exist', (event, fileNames: Array<{ fileName: string, author?: string }>, basePath?: string, createAuthorFolder?: boolean) => {
     const results: Record<string, boolean> = {}
-    fileNames.forEach(({fileName, author}) => {
+    fileNames.forEach(({ fileName, author }) => {
       const { mp3Path } = getFinalSavePath(fileName, author, basePath, createAuthorFolder)
       results[fileName] = fs.existsSync(mp3Path)
     })

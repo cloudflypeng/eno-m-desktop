@@ -11,16 +11,19 @@ import ShareCard from '../sharecard/index.vue'
 // store
 import { VIDEO_MODE, useBlblStore } from '../../blbl/store'
 import { usePlaylistStore } from '../../playlist/store.ts'
+import { useDownloadStore } from '../../store/downloadStore'
 import Video from './video.vue'
 import LoopSwitch from './LoopSwitch.vue'
 
 // hooks & utils
 import useControl from './keys'
+import Message from '../message'
 // @ts-ignore
 import { invokeBiliApi, BLBL } from '~/api/bili'
 
 const PLstore = usePlaylistStore()
 const store = useBlblStore()
+const downloadStore = useDownloadStore()
 
 // 注入全局播放列表控制
 const showPlaylist = inject('showPlaylist')
@@ -313,6 +316,9 @@ function setVoice() {
   }
 }
 const fullScreenStatus = ref(false)
+const isDownloading = ref(false)
+const downloadProgress = ref(0)
+
 function fullScreenTheBody() {
   // 切换全屏状态
   if (document.fullscreenElement)
@@ -326,7 +332,62 @@ function openBlTab() {
   window.open(`https://www.bilibili.com/video/${store.play.bvid}`)
 }
 function changeVideoMode() {
-  store.videoMode = store.videoMode === VIDEO_MODE.FLOATING ? VIDEO_MODE.DRAWER : VIDEO_MODE.FLOATING
+  store.videoMode = store.videoMode === VIDEO_MODE.FLOATING ? VIDEO_MODE.DRAWER : VIDEO_MODE.HIDDEN
+}
+
+async function downloadSong() {
+  if (!store.play?.url || !store.play?.title) {
+    Message.show({
+      type: 'error',
+      message: '无法下载：歌曲信息不完整',
+      duration: 3000,
+    })
+    return
+  }
+
+  isDownloading.value = true
+  downloadProgress.value = 0
+
+  try {
+    // 获取音频URL，处理m4s文件
+    const url = store.play.url
+    const fileName = `${store.play.author || 'Unknown'} - ${store.play.title}`
+      .replace(/[/\\?*:|"<>]/g, '_') // 移除不合法的文件名字符
+
+    const result = await window.ipcRenderer.invoke('download-song', {
+      url,
+      fileName: store.play.title,
+      author: store.play.author,
+      basePath: downloadStore.config.downloadPath,
+      createAuthorFolder: downloadStore.config.createAuthorFolder,
+    })
+
+    const { success, filePath, error } = result
+
+    if (success) {
+      Message.show({
+        type: 'success',
+        message: `下载完成：${filePath}`,
+        duration: 4000,
+      })
+    } else {
+      Message.show({
+        type: 'error',
+        message: `下载失败：${error}`,
+        duration: 4000,
+      })
+    }
+  } catch (err) {
+    console.error('Download error:', err)
+    Message.show({
+      type: 'error',
+      message: '下载异常，请检查FFmpeg是否已安装',
+      duration: 4000,
+    })
+  } finally {
+    isDownloading.value = false
+    downloadProgress.value = 0
+  }
 }
 </script>
 
@@ -410,6 +471,19 @@ function changeVideoMode() {
           :class="cn('i-mingcute:playlist-fill cursor-pointer text-lg transition-colors', showPlaylist ? 'text-[#1db954]' : 'hover:text-white')" 
           @click="toggleList" 
         />
+        
+        <div 
+          :class="cn('cursor-pointer text-lg transition-colors hover:text-white relative group', isDownloading ? 'text-[#1db954]' : '')"
+          @click="!isDownloading && downloadSong()"
+          :title="isDownloading ? '下载中...' : '下载歌曲'"
+        >
+          <div v-if="isDownloading" class="i-mingcute:loading-3-fill animate-spin" />
+          <div v-else class="i-mingcute:download-2-fill" />
+          <!-- 下载进度提示 -->
+          <div v-if="isDownloading && downloadProgress > 0" class="absolute -top-8 right-0 bg-black/80 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+            {{ Math.round(downloadProgress) }}%
+          </div>
+        </div>
         
         <div class="flex items-center gap-2 w-32 group">
           <div v-if="isCloseVoice" class="i-mingcute:volume-mute-line text-lg" @click="setVoice" />
