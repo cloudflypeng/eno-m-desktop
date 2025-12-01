@@ -62,13 +62,31 @@ jobs:
         run: |
           pnpm exec electron-builder --config electron-builder.json5 --win --publish never
 
-      - name: Upload release assets
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: release/**/*
+      - name: Upload macOS assets to Release
+        if: runner.os == 'macOS'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd release/*/
+          for file in *.dmg *.blockmap latest-mac.yml; do
+            if [ -f "$file" ]; then
+              echo "Uploading $file..."
+              gh release upload ${{ github.ref_name }} "$file" --clobber || true
+            fi
+          done
+
+      - name: Upload Windows assets to Release
+        if: runner.os == 'Windows'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd release/*/
+          for file in *.exe *.blockmap; do
+            if [ -f "$file" ]; then
+              echo "Uploading $file..."
+              gh release upload ${{ github.ref_name }} "$file" --clobber || true
+            fi
+          done
 
       - name: Debug - List release files
         if: always()
@@ -76,4 +94,5 @@ jobs:
         run: |
           echo "=== Release directory contents ==="
           ls -lah release/ || echo "No release directory"
-          find release -type f 2>/dev/null || echo "No files found"
+          find release -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.blockmap" -o -name "latest-mac.yml" \) 2>/dev/null | head -20
+

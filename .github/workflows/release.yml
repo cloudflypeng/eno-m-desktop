@@ -30,7 +30,7 @@ jobs:
           if [ -z "$PREV_TAG" ]; then
             CHANGELOG="初始版本"
           else
-            CHANGELOG=$(git log ${PREV_TAG}..${TAG_NAME} --pretty=format:"- %s (%h)" --reverse)
+            CHANGELOG=$(git log ${PREV_TAG}..${TAG_NAME} --pretty=format:"- %s" --reverse)
           fi
           
           # 创建 GitHub Release
@@ -38,3 +38,94 @@ jobs:
             --title "${RELEASE_NAME}" \
             --notes "${CHANGELOG}" \
             --draft=false
+
+  upload-assets:
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+      fail-fast: false
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v4
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build source code
+        run: |
+          pnpm exec vue-tsc --noEmit
+          pnpm exec vite build
+
+      - name: Build Electron app (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          pnpm exec electron-builder --config electron-builder.json5 --mac --publish never
+
+      - name: Build Electron app (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pnpm exec electron-builder --config electron-builder.json5 --win --publish never
+
+      - name: Upload macOS assets
+        if: runner.os == 'macOS'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd release/*/
+          for file in *.dmg *.blockmap latest-mac.yml; do
+            if [ -f "$file" ]; then
+              echo "Uploading $file..."
+              gh release upload ${{ github.ref_name }} "$file" --clobber
+            fi
+          done
+
+      - name: Upload Windows assets
+        if: runner.os == 'Windows'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd release/*/
+          for file in *.exe *.blockmap; do
+            if [ -f "$file" ]; then
+              echo "Uploading $file..."
+              gh release upload ${{ github.ref_name }} "$file" --clobber
+            fi
+          done
+
+      - name: Debug - List release files
+        if: always()
+        shell: bash
+        run: |
+          echo "=== Release directory contents ==="
+          ls -lah release/ || echo "No release directory"
+          find release -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.blockmap" -o -name "latest-mac.yml" \) 2>/dev/null | head -20
+
