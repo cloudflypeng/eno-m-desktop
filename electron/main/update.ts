@@ -100,7 +100,7 @@ async function downloadFile(url: string, dest: string): Promise<boolean> {
     request.on('error', (error) => {
       console.error('Download error:', error)
       file.destroy()
-      fs.unlink(dest, () => {})
+      fs.unlink(dest, () => { })
       resolve(false)
     })
 
@@ -110,7 +110,7 @@ async function downloadFile(url: string, dest: string): Promise<boolean> {
 
     file.on('error', (error) => {
       console.error('File write error:', error)
-      fs.unlink(dest, () => {})
+      fs.unlink(dest, () => { })
       resolve(false)
     })
 

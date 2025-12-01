@@ -9,6 +9,7 @@
 ---
 
 <!-- Update your username if 'meanc' is incorrect -->
+
 [![Build Status](https://github.com/meanc/eno-m-desktop/actions/workflows/build.yml/badge.svg)](https://github.com/meanc/eno-m-desktop/actions/workflows/build.yml)
 [![License](https://img.shields.io/github/license/meanc/eno-m-desktop)](LICENSE)
 
@@ -24,7 +25,8 @@
 
 ## 📥 Download
 
-前往 [Releases](https://github.com/meanc/eno-m-desktop/releases) 页面下载最新版本。
+前往 [Releases](https://github.com/meanc/eno-m-desktop/releases)
+页面下载最新版本。
 
 - **macOS**: `.dmg`
 - **Windows**: `.exe`
@@ -77,7 +79,8 @@ pnpm build
 
 ## 🏗️ Tech Stack
 
-- **Core**: [Electron](https://www.electronjs.org/), [Vite](https://vitejs.dev/), [Vue 3](https://vuejs.org/)
+- **Core**: [Electron](https://www.electronjs.org/),
+  [Vite](https://vitejs.dev/), [Vue 3](https://vuejs.org/)
 - **UI**: [UnoCSS](https://unocss.dev/)
 - **State Management**: [Pinia](https://pinia.vuejs.org/)
 - **Audio**: [Howler.js](https://howlerjs.com/)
