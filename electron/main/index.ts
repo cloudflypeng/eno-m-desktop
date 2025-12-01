@@ -5,6 +5,7 @@ import os from 'node:os'
 import { apiProxy } from '../bili/api/index'
 import { initCookie, setGlobalCookie } from '../bili/cookie'
 import { setupDownloadHandlers } from './download'
+import { setupUpdateHandlers } from './update'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -118,6 +119,7 @@ async function createWindow() {
 app.whenReady().then(() => {
   createWindow()
   setupDownloadHandlers()
+  setupUpdateHandlers()
   // 拦截 B 站图片请求，设置 Referer 防止 403
   session.defaultSession.webRequest.onBeforeSendHeaders({
     urls: [
