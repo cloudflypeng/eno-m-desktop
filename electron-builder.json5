@@ -16,12 +16,30 @@
     "owner": "cloudflypeng",
     "repo": "eno-m-desktop"
   },
+  "dmg": {
+    "sign": false,
+    "iconSize": 128,
+    "contents": [
+      {
+        "x": 130,
+        "y": 220,
+        "type": "file"
+      },
+      {
+        "x": 346,
+        "y": 220,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ]
+  },
   "mac": {
     "icon": "public/512px.png",
     "target": [
       "dmg"
     ],
-    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
+    "artifactName": "${productName}-Mac-${version}-Installer.${ext}",
+    "postInstallScript": "build/postinstall.sh"
   },
   "win": {
     "icon": "public/512px.png",
