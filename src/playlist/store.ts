@@ -6,65 +6,70 @@ import { invokeBiliApi, BLBL } from "~/api/bili";
 import Message from '~/components/message';
 
 export interface song {
-	id: string | number;
-	[key: string]: any;
+    id: string | number;
+    [key: string]: any;
+}
+
+interface CollectionItem {
+    id: string;
+    [key: string]: any;
 }
 
 export const defaultSingers = [
-	"337312411", // 翠花
-	"1889545341", // 邓紫棋
-	"210752", // 真栗
-	"37754047", // 咻咻满
-	"20473341", // 一直在吃的周梓琦
-	"1839002753", // 鹿火
-	"98573631", // 鹿小草
+    "337312411", // 翠花
+    "1889545341", // 邓紫棋
+    "210752", // 真栗
+    "37754047", // 咻咻满
+    "20473341", // 一直在吃的周梓琦
+    "1839002753", // 鹿火
+    "98573631", // 鹿小草
 ];
 
 export const usePlaylistStore = defineStore("playlist", {
-	state: () => ({
-		listenLater: useLocalStorage("listenLater", [] as song[]),
-		// 待添加的song
-		songToAdd: null as song | null,
-		// 添加窗口是否打开
-		addSongDialog: false,
-		// 歌手相关
-		// 用户自定义歌手mid
-		singers: useLocalStorage("singers", [...defaultSingers] as string[]),
-		singerCardCache: useLocalStorage(
-			"singerCardCache",
-			{} as Record<string, any>,
-		),
-		// 当前选中的歌手
-		currentSinger: null as string | null,
-		// 打开合集
-		openCollection: false,
-		collectionInfo: {} as object,
-		collectionSongs: [] as song[],
-		// 歌单海报
-		isShowPoster: false,
-		posters: [] as string[],
-		// 用户权限,取决于是否关注了开发者
-		userPermission: false,
-		userInfo: {} as any,
+    state: () => ({
+        listenLater: useLocalStorage("listenLater", [] as song[]),
+        // 待添加的song
+        songToAdd: null as song | null,
+        // 添加窗口是否打开
+        addSongDialog: false,
+        // 歌手相关
+        // 用户自定义歌手mid
+        singers: useLocalStorage("singers", [...defaultSingers] as string[]),
+        singerCardCache: useLocalStorage(
+            "singerCardCache",
+            {} as Record<string, any>,
+        ),
+        // 当前选中的歌手
+        currentSinger: null as string | null,
+        // 打开合集
+        openCollection: false,
+        collectionInfo: {} as object,
+        collectionSongs: [] as song[],
+        // 歌单海报
+        isShowPoster: false,
+        posters: [] as string[],
+        // 用户权限,取决于是否关注了开发者
+        userPermission: false,
+        userInfo: {} as any,
         // BLBL 收藏夹列表缓存
-        favList: [],
-        collectedFavList: [],
-	}),
-	actions: {
-		startAddSong(song: song) {
-			this.songToAdd = song;
-			this.addSongDialog = true;
+        favList: [] as CollectionItem[],
+        collectedFavList: [] as CollectionItem[]
+    }),
+    actions: {
+        startAddSong(song: song) {
+            this.songToAdd = song;
+            this.addSongDialog = true;
             // 触发刷新收藏夹列表
             this.fetchFavLists();
-		},
-		// 添加到稍后再听
-		addToListenLater(song: song) {
-			this.listenLater.push(song);
-		},
-		addSongToListenLater() {
-			this.listenLater.push(this.songToAdd!);
-			this.addSongDialog = false;
-		},
+        },
+        // 添加到稍后再听
+        addToListenLater(song: song) {
+            this.listenLater.push(song);
+        },
+        addSongToListenLater() {
+            this.listenLater.push(this.songToAdd!);
+            this.addSongDialog = false;
+        },
         // 获取用户创建的收藏夹
         async fetchFavLists(mid?: string) {
             if (!mid) {
@@ -88,7 +93,7 @@ export const usePlaylistStore = defineStore("playlist", {
             try {
                 const createdRes = await invokeBiliApi(BLBL.GET_FAV_LIST, { up_mid: mid });
                 this.favList = createdRes.data.list || [];
-                
+
                 const collectedRes = await invokeBiliApi(BLBL.GET_COLLECTED_FAV_LIST, { up_mid: mid });
                 this.collectedFavList = collectedRes.data.list || [];
             } catch (error) {
@@ -106,7 +111,7 @@ export const usePlaylistStore = defineStore("playlist", {
                 // 暂时假设 songToAdd.id 或者 songToAdd.aid 可用。
                 // 现在的 SongItem 构造里通常 id 是 bvid 或 cid。我们需要 aid。
                 // 调用 getVideoInfo 可以获取 aid。
-                
+
                 let rid = this.songToAdd.aid;
                 if (!rid && this.songToAdd.bvid) {
                     const info = await invokeBiliApi(BLBL.GET_VIDEO_INFO, { bvid: this.songToAdd.bvid });
@@ -137,13 +142,13 @@ export const usePlaylistStore = defineStore("playlist", {
         },
         // 从 BLBL 收藏夹移除歌曲
         async removeSongFromFav(mediaId: string | number, song: song) {
-             try {
+            try {
                 let rid = song.aid;
                 if (!rid && song.bvid) {
                     const info = await invokeBiliApi(BLBL.GET_VIDEO_INFO, { bvid: song.bvid });
                     rid = info.data.aid;
                 }
-                 if (!rid) return;
+                if (!rid) return;
 
                 await invokeBiliApi(BLBL.DEL_SONG_FROM_FAV, {
                     rid,
@@ -176,38 +181,38 @@ export const usePlaylistStore = defineStore("playlist", {
                 console.error('Failed to create fav folder:', error);
             }
         },
-		// 获取歌手信息
-		fetchSingerInfoList() {
-			if (this.singers.length === 0) {
-				this.singers = [...defaultSingers];
-			}
-			// 获取用户添加的歌手信息
-			this.singers.forEach((mid) => {
-				this.fetchSingerInfo(mid);
-			});
-		},
-		// 获取单个歌手信息
-		fetchSingerInfo(mid: string, withCache = true) {
-			if (this.singerCardCache[mid] && withCache) return;
-			this.singerCardCache[mid] = null;
-			invokeBiliApi(BLBL.GET_USER_INFO, { mid }).then((res: any) => {
-				this.singerCardCache[mid] = res.data.card;
-			});
-		},
-		addSinger(mid: string) {
-			this.singers.push(mid);
-			this.fetchSingerInfo(mid, false);
-		},
-		initUserPermission() {
-			invokeBiliApi(BLBL.GET_USER_INFO, { mid: "184327681" }).then((res: any) => {
-				this.userPermission =
-					res.data.mid === "184327681" || res.data.following;
-			});
-		},
-		removeSinger(mid: string) {
-			const index = this.singers.findIndex((s) => s === mid);
-			if (index === -1) return;
-			this.singers.splice(index, 1);
-		},
-	},
+        // 获取歌手信息
+        fetchSingerInfoList() {
+            if (this.singers.length === 0) {
+                this.singers = [...defaultSingers];
+            }
+            // 获取用户添加的歌手信息
+            this.singers.forEach((mid) => {
+                this.fetchSingerInfo(mid);
+            });
+        },
+        // 获取单个歌手信息
+        fetchSingerInfo(mid: string, withCache = true) {
+            if (this.singerCardCache[mid] && withCache) return;
+            this.singerCardCache[mid] = null;
+            invokeBiliApi(BLBL.GET_USER_INFO, { mid }).then((res: any) => {
+                this.singerCardCache[mid] = res.data.card;
+            });
+        },
+        addSinger(mid: string) {
+            this.singers.push(mid);
+            this.fetchSingerInfo(mid, false);
+        },
+        initUserPermission() {
+            invokeBiliApi(BLBL.GET_USER_INFO, { mid: "184327681" }).then((res: any) => {
+                this.userPermission =
+                    res.data.mid === "184327681" || res.data.following;
+            });
+        },
+        removeSinger(mid: string) {
+            const index = this.singers.findIndex((s) => s === mid);
+            if (index === -1) return;
+            this.singers.splice(index, 1);
+        },
+    },
 });
