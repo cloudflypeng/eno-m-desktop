@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 jobs:
-  release:
+  build:
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -52,19 +52,23 @@ jobs:
           pnpm exec vue-tsc --noEmit
           pnpm exec vite build
 
-      - name: Build and release Electron app
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Electron app (macOS)
+        if: runner.os == 'macOS'
         run: |
-          pnpm exec electron-builder --config electron-builder.json5 --publish always
+          pnpm exec electron-builder --config electron-builder.json5 --mac --publish never
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
+      - name: Build Electron app (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          pnpm exec electron-builder --config electron-builder.json5 --win --publish never
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: ${{ matrix.os }}-artifacts
-          path: release/
-          retention-days: 30
+          files: release/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Debug - List release files
         if: always()
@@ -72,4 +76,4 @@ jobs:
         run: |
           echo "=== Release directory contents ==="
           ls -lah release/ || echo "No release directory"
-          find release -type f -name "*" 2>/dev/null | head -20
+          find release -type f 2>/dev/null || echo "No files found"

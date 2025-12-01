@@ -11,6 +11,11 @@
     "dist",
     "dist-electron"
   ],
+  "publish": {
+    "provider": "github",
+    "owner": "cloudflypeng",
+    "repo": "eno-m-desktop"
+  },
   "mac": {
     "icon": "public/512px.png",
     "target": [
@@ -43,3 +48,4 @@
     "artifactName": "${productName}-Linux-${version}.${ext}"
   }
 }
+
