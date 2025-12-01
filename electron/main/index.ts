@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell, ipcMain, session, dialog } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import os from 'node:os'
+import { execSync } from 'node:child_process'
 import { apiProxy } from '../bili/api/index'
 import { initCookie, setGlobalCookie } from '../bili/cookie'
 import { setupDownloadHandlers } from './download'
@@ -216,4 +217,60 @@ ipcMain.handle('select-directory', async () => {
     console.error('Failed to select directory:', error)
     return { success: false, error: error.message }
   }
+})
+
+// 获取 FFmpeg 诊断信息
+ipcMain.handle('get-ffmpeg-info', () => {
+  const diagnostics: any = {
+    platform: process.platform,
+    arch: process.arch,
+    paths: [],
+    found: false,
+  }
+
+  // 检查常见路径
+  const commonPaths = [
+    '/usr/local/bin/ffmpeg',
+    '/opt/homebrew/bin/ffmpeg',
+    '/usr/bin/ffmpeg',
+    'C:\\ffmpeg\\bin\\ffmpeg.exe',
+    'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe',
+  ]
+
+  for (const p of commonPaths) {
+    try {
+      const result = execSync(`"${p}" -version 2>&1`, { encoding: 'utf-8' }).split('\n')[0]
+      diagnostics.paths.push({
+        path: p,
+        found: true,
+        version: result.substring(0, 50),
+      })
+      diagnostics.found = true
+    } catch {
+      diagnostics.paths.push({
+        path: p,
+        found: false,
+      })
+    }
+  }
+
+  // 尝试在 PATH 中查找
+  try {
+    const result = execSync('ffmpeg -version 2>&1', { encoding: 'utf-8' }).split('\n')[0]
+    diagnostics.inPath = true
+    diagnostics.pathVersion = result
+    diagnostics.found = true
+  } catch {
+    diagnostics.inPath = false
+  }
+
+  // 尝试使用 which 命令
+  try {
+    const result = execSync('which ffmpeg', { encoding: 'utf-8' }).trim()
+    diagnostics.whichResult = result
+  } catch {
+    diagnostics.whichResult = null
+  }
+
+  return diagnostics
 })

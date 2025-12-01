@@ -62,12 +62,52 @@ function getFinalSavePath(
 
 // 检查FFmpeg是否可用
 function checkFFmpeg(): boolean {
+  // 常见的 FFmpeg 可执行文件名
+  const ffmpegNames = ['ffmpeg', 'ffmpeg.exe']
+
+  // 常见的安装路径
+  const commonPaths = [
+    '/usr/local/bin/ffmpeg',           // macOS Homebrew
+    '/opt/homebrew/bin/ffmpeg',        // Apple Silicon Homebrew
+    '/usr/bin/ffmpeg',                 // Linux
+    '/opt/ffmpeg/bin/ffmpeg',          // 自定义安装
+    'C:\\ffmpeg\\bin\\ffmpeg.exe',    // Windows
+    'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe',
+  ]
+
+  // 首先尝试在 PATH 中查找
+  for (const name of ffmpegNames) {
+    try {
+      execSync(`${name} -version`, { stdio: 'pipe' })
+      console.log(`[FFmpeg] 找到 ${name} 在 PATH 中`)
+      return true
+    } catch {
+      // 继续下一个
+    }
+  }
+
+  // 然后尝试常见的安装路径
+  for (const path of commonPaths) {
+    try {
+      execSync(`"${path}" -version`, { stdio: 'pipe' })
+      console.log(`[FFmpeg] 找到 FFmpeg 在 ${path}`)
+      return true
+    } catch {
+      // 继续下一个
+    }
+  }
+
+  // 最后尝试使用 which 命令查找（macOS/Linux）
   try {
-    execSync('ffmpeg -version', { stdio: 'pipe' })
+    execSync('which ffmpeg', { stdio: 'pipe' })
+    console.log('[FFmpeg] 通过 which 命令找到 FFmpeg')
     return true
   } catch {
-    return false
+    // 继续
   }
+
+  console.log('[FFmpeg] 未找到 FFmpeg')
+  return false
 }
 
 // 下载文件（流式下载，减少内存占用）

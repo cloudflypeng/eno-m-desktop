@@ -16,6 +16,12 @@ const releaseNotes = ref('')
 const updateError = ref('')
 const updateChecked = ref(false)
 
+// FFmpeg 检查状态
+const ffmpegAvailable = ref<boolean | null>(null)
+const ffmpegChecking = ref(false)
+const ffmpegInfo = ref<any>(null)
+const showFFmpegDiag = ref(false)
+
 const downloadPathDisplay = computed(() => {
   return downloadStore.config.downloadPath || '未设置（使用默认目录）'
 })
@@ -137,9 +143,40 @@ async function initVersion() {
   }
 }
 
-// 组件挂载时获取版本
+// 检查 FFmpeg
+async function checkFFmpeg() {
+  ffmpegChecking.value = true
+  try {
+    const info = await (window as any).ipcRenderer?.invoke('get-ffmpeg-info')
+    ffmpegInfo.value = info
+    ffmpegAvailable.value = info.found
+
+    if (info.found) {
+      Message.show({
+        type: 'success',
+        message: '✓ FFmpeg 已安装',
+      })
+    } else {
+      Message.show({
+        type: 'error',
+        message: '✗ 未找到 FFmpeg，请先安装',
+      })
+    }
+  } catch (error: any) {
+    ffmpegAvailable.value = false
+    Message.show({
+      type: 'error',
+      message: '检查 FFmpeg 失败',
+    })
+  } finally {
+    ffmpegChecking.value = false
+  }
+}
+
+// 组件挂载时获取版本和 FFmpeg 状态
 onMounted(() => {
   initVersion()
+  checkFFmpeg()
 })
 </script>
 
@@ -268,6 +305,123 @@ onMounted(() => {
                   <li>• 应用会自动检查 GitHub Releases 中的最新版本</li>
                   <li>• 更新将从 GitHub 下载，可能需要稳定的网络连接</li>
                   <li>• 下载完成后安装程序会自动启动</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 边框光晕 -->
+        <div class="card-border-glow rounded-2xl" />
+      </div>
+
+      <!-- FFmpeg 检查卡片 -->
+      <div class="card-base card-hover card-interactive rounded-2xl p-8 mb-8">
+        <!-- 卡片背景 -->
+        <div class="card-overlay rounded-2xl" />
+        <div class="card-glow" />
+
+        <!-- 内容 -->
+        <div class="relative z-20">
+          <!-- 标题 -->
+          <div class="flex items-center gap-3 mb-8">
+            <div class="w-2 h-8 bg-gradient-to-b from-orange-500 to-transparent rounded-full" />
+            <h2 class="text-heading-1">系统工具</h2>
+          </div>
+
+          <!-- FFmpeg 状态 -->
+          <div class="mb-8">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <p class="text-body-small text-text-tertiary mb-2">FFmpeg 状态</p>
+                <p v-if="ffmpegAvailable === null" class="text-body">检查中...</p>
+                <p v-else-if="ffmpegAvailable" class="text-body text-[#1db954]">✓ 已安装</p>
+                <p v-else class="text-body text-red-500">✗ 未找到</p>
+              </div>
+              <button
+                @click="checkFFmpeg"
+                :disabled="ffmpegChecking"
+                class="btn-secondary"
+                :class="{ 'opacity-50 cursor-not-allowed': ffmpegChecking }"
+              >
+                <div class="flex items-center gap-2">
+                  <span v-if="ffmpegChecking" class="i-mingcute:loading-3-line animate-spin" />
+                  <span v-else class="i-mingcute:refresh-2-line" />
+                  <span>{{ ffmpegChecking ? '检查中' : '重新检查' }}</span>
+                </div>
+              </button>
+            </div>
+
+            <!-- FFmpeg 诊断信息 -->
+            <button
+              v-if="ffmpegInfo"
+              @click="showFFmpegDiag = !showFFmpegDiag"
+              class="text-xs text-text-tertiary hover:text-white transition-colors mb-4"
+            >
+              {{ showFFmpegDiag ? '▼ 隐藏' : '▶ 显示' }} 诊断信息
+            </button>
+
+            <div v-if="showFFmpegDiag && ffmpegInfo" class="p-4 rounded-lg bg-black/30 border border-[#404040] text-xs font-mono space-y-2">
+              <div>
+                <span class="text-text-tertiary">平台:</span>
+                <span class="text-white ml-2">{{ ffmpegInfo.platform }} ({{ ffmpegInfo.arch }})</span>
+              </div>
+              <div v-if="ffmpegInfo.inPath">
+                <span class="text-[#1db954]">✓</span>
+                <span class="text-text-tertiary ml-2">PATH 中找到 FFmpeg</span>
+              </div>
+              <div v-for="(p, idx) in ffmpegInfo.paths" :key="idx">
+                <span v-if="p.found" class="text-[#1db954]">✓</span>
+                <span v-else class="text-gray-600">✗</span>
+                <span class="text-text-tertiary ml-2">{{ p.path }}</span>
+                <span v-if="p.found" class="text-gray-500 ml-2">{{ p.version }}</span>
+              </div>
+              <div v-if="ffmpegInfo.whichResult">
+                <span class="text-text-tertiary">which ffmpeg:</span>
+                <span class="text-white ml-2">{{ ffmpegInfo.whichResult }}</span>
+              </div>
+            </div>
+
+            <!-- 状态信息 -->
+            <div v-if="ffmpegAvailable" class="p-4 rounded-lg bg-[#1db954]/10 border border-[#1db954]/20">
+              <div class="flex items-start gap-3">
+                <div class="i-mingcute:check-circle-line text-[#1db954] text-lg flex-shrink-0 mt-0.5" />
+                <div class="text-sm">
+                  <p class="font-medium text-white mb-1">FFmpeg 就绪</p>
+                  <p class="text-text-secondary">您可以正常下载和转换音乐</p>
+                </div>
+              </div>
+            </div>
+
+            <div v-else-if="ffmpegAvailable === false" class="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
+              <div class="flex items-start gap-3">
+                <div class="i-mingcute:alert-line text-orange-500 text-lg flex-shrink-0 mt-0.5" />
+                <div class="text-sm">
+                  <p class="font-medium text-white mb-2">FFmpeg 未安装</p>
+                  <p class="text-text-secondary mb-3">下载功能需要 FFmpeg 来转换音频格式</p>
+                  <a
+                    href="https://github.com/cloudflypeng/eno-m-desktop/blob/main/FFMPEG_INSTALL_GUIDE.md"
+                    target="_blank"
+                    class="text-orange-500 hover:text-orange-400 underline text-xs"
+                  >
+                    查看安装指南 →
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 说明信息 -->
+          <div class="p-4 rounded-lg bg-orange-500/5 border border-orange-500/10">
+            <div class="flex gap-3">
+              <div class="i-mingcute:information-line text-orange-500 text-lg flex-shrink-0 mt-0.5" />
+              <div class="text-sm">
+                <p class="font-medium text-white mb-2">FFmpeg 信息：</p>
+                <ul class="space-y-1 text-text-secondary text-xs">
+                  <li>• FFmpeg 是强大的音视频处理工具</li>
+                  <li>• 用于将 m4s 音频转换为 mp3 格式</li>
+                  <li>• 完全免费开源，安装后占用空间约 50MB</li>
+                  <li>• macOS 用户可使用 Homebrew 快速安装: <code class="bg-black/30 px-1.5 py-0.5 rounded">brew install ffmpeg</code></li>
                 </ul>
               </div>
             </div>
