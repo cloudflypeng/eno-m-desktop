@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { inject } from 'vue'
 
 const router = useRouter()
+const userInfo = inject('userInfo', null) as any
 
 function goBack() {
   router.back()
@@ -30,6 +32,10 @@ function goForward() {
     </div>
     <!-- 这里可以预留搜索框或者用户信息的位置 -->
     <div class="flex-1" />
+    <div v-if="userInfo?.isLogin" class="flex items-center gap-3">
+      <img :src="userInfo?.face" alt="avatar" class="w-8 h-8 rounded-full border border-[#333]" />
+      <span class="text-white text-sm">{{ userInfo?.uname }}</span>
+    </div>
   </div>
 </template>
 

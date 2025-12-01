@@ -1,18 +1,28 @@
-import { session, app } from 'electron'
+import { session, app, safeStorage } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 
 // 管理全局 Cookie
 let globalCookie = ''
-const COOKIE_FILE = path.join(app.getPath('userData'), 'bili_cookie.txt')
+const COOKIE_FILE = path.join(app.getPath('userData'), 'bili_cookie.dat')
 
 export async function initCookie() {
   try {
     // 1. 优先尝试读取本地存储的 Cookie
     if (fs.existsSync(COOKIE_FILE)) {
-      const savedCookie = fs.readFileSync(COOKIE_FILE, 'utf-8')
-      if (savedCookie && savedCookie.trim().length > 0) {
-        globalCookie = savedCookie.trim()
+      const raw = fs.readFileSync(COOKIE_FILE)
+      let decrypted = ''
+      try {
+        if (safeStorage.isEncryptionAvailable()) {
+          decrypted = safeStorage.decryptString(raw)
+        } else {
+          decrypted = raw.toString('utf-8')
+        }
+      } catch (e) {
+        console.error('Failed to decrypt cookie file:', e)
+      }
+      if (decrypted && decrypted.trim().length > 0) {
+        globalCookie = decrypted.trim()
         console.log('Loaded global cookie from file')
         return
       }
@@ -46,7 +56,13 @@ export function setGlobalCookie(cookie: string) {
   globalCookie = cookie
   // 持久化存储
   try {
-    fs.writeFileSync(COOKIE_FILE, cookie, 'utf-8')
+    let buff: Buffer
+    if (safeStorage.isEncryptionAvailable()) {
+      buff = safeStorage.encryptString(cookie)
+    } else {
+      buff = Buffer.from(cookie, 'utf-8')
+    }
+    fs.writeFileSync(COOKIE_FILE, buff)
     console.log('Cookie saved to file')
   } catch (error) {
     console.error('Failed to save cookie to file:', error)
