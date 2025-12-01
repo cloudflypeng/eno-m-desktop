@@ -1,5 +1,5 @@
 <!-- eslint-disable no-console -->
-<script setup>
+<script setup lang="ts">
 import './styles/index.ts'
 import { ref, onMounted, provide } from 'vue'
 import Play from './components/Play/Play.vue'
@@ -23,17 +23,32 @@ provide('showPlaylist', showPlaylist)
 
 onMounted(() => {
   // 获取当前用户信息
-  invokeBiliApi(BLBL.GET_NAV).then((res) => {
-    if (res.data && res.data.isLogin) {
-      userInfo.value = res.data
-    } else {
-      console.warn('User not logged in or fetch failed', res)
+  const fetchUserInfo = async () => {
+    try {
+      const res = await invokeBiliApi(BLBL.GET_NAV)
+      if (res.data && res.data.isLogin) {
+        userInfo.value = res.data
+        console.log('User info fetched:', res.data.uname)
+      } else {
+        userInfo.value = {}
+      }
+    } catch (error) {
+      console.error('Failed to fetch user info:', error)
+      userInfo.value = {}
     }
+  }
+  
+  fetchUserInfo()
+
+  // 监听用户信息更新事件（扫码登陆或退出登陆时触发）
+  ;(window as any).ipcRenderer?.on('bili-user-updated', () => {
+    console.log('bili-user-updated event received, refreshing user info...')
+    fetchUserInfo()
   })
 })
 provide('userInfo', userInfo)
 
-function deleteSong(index) {
+function deleteSong(index: number) {
   store.playList.splice(index, 1)
 }
 </script>
@@ -68,8 +83,8 @@ function deleteSong(index) {
       </div>
       <div class="flex-1 overflow-y-auto scrollbar-styled p-2">
          <SongItem 
-          v-for="(song, index) in store.playList" 
-          :key="song.id" 
+          v-for="(song, index) in (store.playList as any[])" 
+          :key="(song as any).id"
           show-active 
           del 
           :song="song" 

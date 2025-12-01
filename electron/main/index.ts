@@ -7,6 +7,7 @@ import { apiProxy } from '../bili/api/index'
 import { initCookie, setGlobalCookie } from '../bili/cookie'
 import { setupDownloadHandlers } from './download'
 import { setupUpdateHandlers } from './update'
+import { generateQR, pollQR, fetchUserInfo } from '../bili/login'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -121,6 +122,54 @@ app.whenReady().then(() => {
   createWindow()
   setupDownloadHandlers()
   setupUpdateHandlers()
+  // Bilibili QR Login IPC
+  ipcMain.handle('bili-qr-generate', async () => {
+    try {
+      const result = await generateQR()
+      return { url: result.url, oauthKey: result.oauthKey, qrImage: result.qrImage }
+    } catch (e: any) {
+      return { error: e.message }
+    }
+  })
+
+  ipcMain.handle('bili-qr-poll', async (_e, oauthKey: string) => {
+    try {
+      const res = await pollQR(oauthKey)
+      return res
+    } catch (e: any) {
+      return { status: 'failed', error: e.message }
+    }
+  })
+  ipcMain.handle('bili-user-info', async () => {
+    try {
+      const info = await fetchUserInfo()
+      return { success: true, info }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
+
+  ipcMain.handle('bili-logout', async () => {
+    try {
+      // 清除本地存储的 Cookie
+      const fs = await import('node:fs')
+      const path = await import('node:path')
+      const app = await import('electron')
+      const cookieFile = path.join(app.app.getPath('userData'), 'bili_cookie.dat')
+      if (fs.existsSync(cookieFile)) {
+        fs.unlinkSync(cookieFile)
+      }
+      // 清除全局 Cookie
+      setGlobalCookie('')
+      // 通知渲染进程用户信息已更新
+      if (win && !win.isDestroyed() && !win.webContents.isDestroyed()) {
+        win.webContents.send('bili-user-updated')
+      }
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
   // 拦截 B 站图片请求，设置 Referer 防止 403
   session.defaultSession.webRequest.onBeforeSendHeaders({
     urls: [
@@ -133,6 +182,7 @@ app.whenReady().then(() => {
       'https://*.bilibili.com/*',
       'https://*.bilivideo.com/*',
       'https://*.bilivideo.cn/*',
+      'https://account.bilibili.com/*'
     ]
   }, (details, callback) => {
     details.requestHeaders['Referer'] = 'https://www.bilibili.com/'

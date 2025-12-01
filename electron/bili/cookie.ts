@@ -5,10 +5,11 @@ import fs from 'node:fs'
 // 管理全局 Cookie
 let globalCookie = ''
 const COOKIE_FILE = path.join(app.getPath('userData'), 'bili_cookie.dat')
+const OLD_COOKIE_FILE = path.join(app.getPath('userData'), 'bili.json') // 兼容旧格式
 
 export async function initCookie() {
   try {
-    // 1. 优先尝试读取本地存储的 Cookie
+    // 1. 优先尝试读取新格式的本地存储的 Cookie
     if (fs.existsSync(COOKIE_FILE)) {
       const raw = fs.readFileSync(COOKIE_FILE)
       let decrypted = ''
@@ -23,19 +24,48 @@ export async function initCookie() {
       }
       if (decrypted && decrypted.trim().length > 0) {
         globalCookie = decrypted.trim()
-        console.log('Loaded global cookie from file')
+        console.log('Loaded global cookie from new format file')
         return
       }
     }
 
-    // 2. 如果没有本地 Cookie，尝试访问 B 站主页获取游客 Cookie
+    // 2. 尝试读取旧格式的 Cookie（bili.json）
+    if (fs.existsSync(OLD_COOKIE_FILE)) {
+      try {
+        const raw = fs.readFileSync(OLD_COOKIE_FILE, 'utf-8')
+        const data = JSON.parse(raw)
+        let oldCookie = ''
+
+        // 兼容不同的旧格式
+        if (data.cookie && typeof data.cookie === 'string') {
+          oldCookie = data.cookie
+        } else if (data.cookies && Array.isArray(data.cookies)) {
+          // 如果是数组格式，转换为字符串
+          oldCookie = data.cookies.map((c: any) => `${c.name}=${c.value}`).join('; ')
+        } else if (typeof data === 'string') {
+          oldCookie = data
+        }
+
+        if (oldCookie && oldCookie.trim().length > 0) {
+          globalCookie = oldCookie.trim()
+          console.log('Loaded global cookie from old format file')
+          // 将旧格式迁移到新格式
+          setGlobalCookie(oldCookie)
+          return
+        }
+      } catch (e) {
+        console.error('Failed to read old cookie file:', e)
+      }
+    }
+
+    // 3. 如果没有本地 Cookie，尝试访问 B 站主页获取游客 Cookie
     const response = await fetch('https://api.bilibili.com/x/web-interface/nav', {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Referer': 'https://www.bilibili.com/'
       }
     })
-    
+
     // 获取 set-cookie header
     const setCookie = response.headers.get('set-cookie')
     if (setCookie) {
