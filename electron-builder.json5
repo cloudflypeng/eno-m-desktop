@@ -19,6 +19,7 @@
   "dmg": {
     "sign": false,
     "iconSize": 128,
+    "postinstall": "build/postinstall.sh",
     "contents": [
       {
         "x": 130,
@@ -38,8 +39,7 @@
     "target": [
       "dmg"
     ],
-    "artifactName": "${productName}-Mac-${version}-Installer.${ext}",
-    "postInstallScript": "build/postinstall.sh"
+    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
   },
   "win": {
     "icon": "public/512px.png",
