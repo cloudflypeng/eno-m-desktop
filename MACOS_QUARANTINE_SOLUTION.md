@@ -3,6 +3,7 @@
 ## 问题说明
 
 ### 现象
+
 每次更新应用后，重新打开时都会出现"应用已损坏"的错误提示，需要再次运行以下命令：
 
 ```bash
@@ -35,11 +36,13 @@ xattr -dr com.apple.quarantine /Applications/ENO-M.app
 在 v1.3.1+ 版本中，我们已经实现了自动化解决：
 
 #### 实现方式
+
 - 创建了 `build/postinstall.sh` postinstall 脚本
 - 在 `electron-builder.json5` 中配置了 `postInstallScript`
 - DMG 安装完成后自动执行脚本清除隔离属性
 
 #### 工作流程
+
 ```
 1. 用户双击 ENO-M-Mac-x.x.x-Installer.dmg
 2. macOS 打开 DMG 并显示安装窗口
@@ -54,6 +57,7 @@ xattr -dr com.apple.quarantine /Applications/ENO-M.app
 #### 代码示例
 
 **build/postinstall.sh**
+
 ```bash
 #!/bin/bash
 APP_PATH="/Applications/ENO-M.app"
@@ -71,6 +75,7 @@ fi
 ```
 
 **electron-builder.json5**
+
 ```json5
 {
   "mac": {
@@ -84,12 +89,14 @@ fi
 如果自动脚本未生效，用户可使用：
 
 #### 快速脚本
+
 ```bash
 chmod +x quick-allow.sh
 ./quick-allow.sh
 ```
 
 #### 或手动命令
+
 ```bash
 xattr -dr com.apple.quarantine /Applications/ENO-M.app
 ```
@@ -111,12 +118,14 @@ spctl -a -v /Applications/ENO-M.app
 ```
 
 **优势：**
+
 - ✓ 一劳永逸解决问题
 - ✓ 用户体验最佳
 - ✓ 适用于所有版本
 - ✓ 无需用户手动操作
 
 **成本：**
+
 - 需要年费 USD 99 的 Apple Developer Program 账户
 - 首次签名需要生成或导入证书
 - 后续更新自动应用签名
@@ -149,6 +158,7 @@ xcrun stapler staple ENO-M.app
 ```
 
 **优势：**
+
 - ✓ 最高级别的 macOS 安全认证
 - ✓ 用户体验最佳
 - ✓ 无隔离属性和任何警告
@@ -156,36 +166,41 @@ xcrun stapler staple ENO-M.app
 
 ## 对比表
 
-| 方案 | 难度 | 成本 | 一次性 | 用户体验 | 推荐度 |
-|------|------|------|--------|---------|--------|
-| 1. 自动化脚本 | ⭐ | 免费 | ✓ | 中等 | ⭐⭐⭐⭐ |
-| 2. 手动清除 | ⭐ | 免费 | ✗ | 差 | ⭐ |
-| 3. 代码签名 | ⭐⭐ | USD 99/年 | ✓ | 优秀 | ⭐⭐⭐ |
-| 4. 公证应用 | ⭐⭐⭐ | USD 99/年 | ✓ | 完美 | ⭐⭐⭐⭐ |
+| 方案          | 难度   | 成本      | 一次性 | 用户体验 | 推荐度   |
+| ------------- | ------ | --------- | ------ | -------- | -------- |
+| 1. 自动化脚本 | ⭐     | 免费      | ✓      | 中等     | ⭐⭐⭐⭐ |
+| 2. 手动清除   | ⭐     | 免费      | ✗      | 差       | ⭐       |
+| 3. 代码签名   | ⭐⭐   | USD 99/年 | ✓      | 优秀     | ⭐⭐⭐   |
+| 4. 公证应用   | ⭐⭐⭐ | USD 99/年 | ✓      | 完美     | ⭐⭐⭐⭐ |
 
 ## 当前版本状态
 
 ### v1.3.1+
+
 - ✅ 已实现方案 1（自动化脚本）
 - postinstall 脚本会在 DMG 安装后自动清除隔离属性
 - 用户无需手动操作
 
 ### v1.2.1 及以前
+
 - ⚠️ 需要用户手动清除
 - 提供了 `quick-allow.sh` 脚本方便用户
 
 ## 建议
 
 ### 短期（现在）
+
 - 使用方案 1（自动化脚本）- 已实现
 - 成本低，效果好
 
 ### 中期（6-12 个月）
+
 - 考虑购买 Apple Developer Program 账户
 - 实现方案 3（代码签名）
 - 完全消除用户困扰
 
 ### 长期（企业级）
+
 - 实现方案 4（完整公证流程）
 - 自动化 CI/CD 流程中的签名和公证
 
@@ -226,4 +241,3 @@ xattr /Applications/ENO-M.app
 - [Electron Builder - DMG Options](https://www.electron.build/configuration/dmg)
 - [macOS Gatekeeper](https://support.apple.com/zh-cn/HT202491)
 - [Apple Developer - Code Signing Guide](https://developer.apple.com/support/code-signing/)
-
