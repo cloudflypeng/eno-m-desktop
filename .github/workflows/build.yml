@@ -12,6 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
+      fail-fast: false
 
     permissions:
       contents: write
@@ -56,3 +57,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pnpm exec electron-builder --config electron-builder.json5 --publish always
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ matrix.os }}-artifacts
+          path: release/
+          retention-days: 30
+
+      - name: Debug - List release files
+        if: always()
+        shell: bash
+        run: |
+          echo "=== Release directory contents ==="
+          ls -lah release/ || echo "No release directory"
+          find release -type f -name "*" 2>/dev/null | head -20
