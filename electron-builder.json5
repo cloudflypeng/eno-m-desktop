@@ -19,7 +19,6 @@
   "dmg": {
     "sign": false,
     "iconSize": 128,
-    "postinstall": "build/postinstall.sh",
     "contents": [
       {
         "x": 130,
