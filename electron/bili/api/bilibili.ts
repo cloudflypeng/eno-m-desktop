@@ -335,6 +335,50 @@ const api = {
     },
     afterHandle: AHS.J,
   },
+  // 获取视频合集信息
+  [BLBL.GET_COLLECTION_INFO]: {
+    url: `${baseUrl}/x/polymer/web-space/seasons_archives_list`,
+    _fetch: {
+      method: 'get',
+    },
+    params: {
+      mid: 0, // 用户 mid
+      season_id: 0, // 视频合集 ID
+      sort_reverse: false, // 排序方式
+      page_num: 1, // 页码索引
+      page_size: 30, // 单页内容数量
+    },
+    afterHandle: AHS.J,
+  },
+  // 获取系列信息
+  [BLBL.GET_SERIES_INFO]: {
+    url: `${baseUrl}/x/series/archives`,
+    _fetch: {
+      method: 'get',
+    },
+    params: {
+      mid: 0, // 用户 mid
+      series_id: 0, // 系列ID
+      only_normal: true, // 作用尚不明确
+      sort: 'desc', // 排序方式
+      pn: 1, // 页码
+      ps: 20, // 每页数量
+    },
+    afterHandle: AHS.J,
+  },
+  // 获取系列和合集视频列表
+  [BLBL.GET_SEASONS_SERIES_LIST]: {
+    url: `${baseUrl}/x/polymer/web-space/seasons_series_list`,
+    _fetch: {
+      method: 'get',
+    },
+    params: {
+      mid: 0, // 用户 mid
+      page_num: 1, // 页码
+      page_size: 20, // 每页数量
+    },
+    afterHandle: AHS.J,
+  },
 }
 
 export default api

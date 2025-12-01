@@ -29,6 +29,9 @@ enum BLBL {
   GET_USER_ARC = 'getUserArc', // 获取用户投稿视频
   GET_NAV = 'getNav', // 获取当前登录用户信息
   RELATION_MODIFY = 'relationModify', // 关注/取消关注
+  GET_COLLECTION_INFO = 'getCollectionInfo', // 获取视频合集信息
+  GET_SERIES_INFO = 'getSeriesInfo', // 获取指定系列信息
+  GET_SEASONS_SERIES_LIST = 'getSeasonsSeriesList', // 获取系列和合集列表
 }
 
 const API = {

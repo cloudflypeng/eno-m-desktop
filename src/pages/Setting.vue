@@ -256,7 +256,7 @@ function handleBiliLogout() {
 <template>
   <div class="page-inner relative">
     <!-- 顶部架构效果 -->
-    <div class="fixed top-0 left-[280px] right-0 h-40 bg-gradient-to-b from-[#1db954]/5 via-[#121212]/20 to-[#121212] pointer-events-none z-0" />
+    <div class="fixed top-0 left-[280px] right-0 h-40 bg-gradient-to-b from-[#1db954]/5 via-[#121212]/20 to-[#121212] pointer-events-none -z-10" />
     
     <!-- 内容区域 -->
     <div class="relative z-10 max-w-4xl">

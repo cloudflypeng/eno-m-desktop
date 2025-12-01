@@ -29,6 +29,11 @@ const router = createRouter({
 			component: () => import("../playlist/FavDetail.vue"),
 		},
 		{
+			path: "/collectionDetail/:collectionId",
+			name: "collectionDetail",
+			component: () => import("../playlist/CollectionDetail.vue"),
+		},
+		{
 			path: "/singerList",
 			name: "singerList",
 			component: () => import("../pages/Singer/SingerList.vue"),
