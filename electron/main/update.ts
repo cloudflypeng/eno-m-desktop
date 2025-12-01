@@ -7,6 +7,30 @@ import { spawn } from 'node:child_process'
 const GITHUB_REPO = 'cloudflypeng/eno-m-desktop'
 const GITHUB_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`
 
+// 清理旧的更新临时文件
+function cleanupOldUpdates() {
+  try {
+    const tempDir = os.tmpdir()
+    const files = fs.readdirSync(tempDir)
+
+    files.forEach((file) => {
+      if (file.startsWith('eno-m-update-')) {
+        const filePath = path.join(tempDir, file)
+        try {
+          // 尝试删除文件
+          fs.unlinkSync(filePath)
+          console.log(`Cleaned up old update file: ${file}`)
+        } catch (err) {
+          // 文件可能正在使用或已被删除，忽略错误
+          console.log(`Failed to clean up ${file}:`, (err as Error).message)
+        }
+      }
+    })
+  } catch (err) {
+    console.error('Error cleaning up old updates:', err)
+  }
+}
+
 interface ReleaseInfo {
   tag_name: string
   assets: Array<{
@@ -120,6 +144,9 @@ async function downloadFile(url: string, dest: string): Promise<boolean> {
 
 // 提供给渲染进程的 IPC 处理
 export function setupUpdateHandlers() {
+  // 在 setupUpdateHandlers 调用时自动清理旧更新文件
+  cleanupOldUpdates()
+
   // 检查更新
   ipcMain.handle('check-for-updates', async () => {
     try {
