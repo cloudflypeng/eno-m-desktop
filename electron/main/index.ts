@@ -282,9 +282,9 @@ ipcMain.handle('open-external-window', async (_e, url: string) => {
           const lower = p.toLowerCase()
           // 跳过属性字段
           return !lower.startsWith('httponly') && !lower.startsWith('secure') &&
-                 !lower.startsWith('samesite') && !lower.startsWith('path=') &&
-                 !lower.startsWith('domain=') && !lower.startsWith('expires=') &&
-                 !lower.startsWith('max-age=')
+            !lower.startsWith('samesite') && !lower.startsWith('path=') &&
+            !lower.startsWith('domain=') && !lower.startsWith('expires=') &&
+            !lower.startsWith('max-age=')
         })
 
         for (const pair of cookiePairs) {

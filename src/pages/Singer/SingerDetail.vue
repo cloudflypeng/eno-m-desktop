@@ -455,8 +455,7 @@ function stopBulkDownload() {
 
           <h1 class="text-display flex items-center gap-3 cursor-pointer">
             {{ info?.name }}
-            <button @click="openSingerPage" title="在新窗口打开歌手主页"
-              class="text-gray-400 hover:text-white transition-colors">
+            <button @click="openSingerPage" title="在新窗口打开歌手主页" class="text-gray-400 hover:text-white transition-colors">
               <div class="i-mingcute:external-link-line text-lg" />
             </button>
           </h1>

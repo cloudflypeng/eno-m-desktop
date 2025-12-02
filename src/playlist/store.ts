@@ -11,7 +11,18 @@ export interface song {
 }
 
 interface CollectionItem {
-    id: string;
+    id: string | number;
+    mid: string | number;
+    title: string;
+    media_count?: number;
+    name?: string;
+    intro?: string;
+    attr?: number;
+    fav_state?: number;
+    fid?: number;
+    season_id?: number;
+    series_id?: number;
+    type?: string;
     [key: string]: any;
 }
 
