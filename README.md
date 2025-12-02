@@ -33,15 +33,7 @@
 
 ### macOS 应用启动问题
 
-如果在 macOS 上看到"应用已损坏"的错误，请运行以下命令：
-
-```bash
-# 快速允许脚本
-chmod +x quick-allow.sh
-./quick-allow.sh
-```
-
-或使用命令行直接处理：
+使用命令行处理：
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/ENO-M.app
@@ -50,11 +42,6 @@ xattr -dr com.apple.quarantine /Applications/ENO-M.app
 详见 [MACOS_APP_ALLOW_GUIDE.md](MACOS_APP_ALLOW_GUIDE.md) 获取详细说明。
 
 ## 🛠️ Development
-
-### Prerequisites
-
-- Node.js 20+
-- pnpm 9+
 
 ### Setup
 
@@ -87,4 +74,4 @@ pnpm build
 
 ## 📄 License
 
-[MIT](LICENSE) © 2024-present [meanc](https://github.com/meanc)
+[MIT](LICENSE) © 2025-meanc [meanc](https://github.com/meanc)
