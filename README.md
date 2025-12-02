@@ -1,17 +1,12 @@
 # Eno-M Desktop
 
 <div align="center">
-  <img src="public/download.png" width="120" height="120" alt="Icon">
+  <img src="public/512px.png" width="120" height="120" alt="Icon">
   <p>Based on Bilibili Audio, a beautiful desktop music player.</p>
   <p>基于 Bilibili 的高颜值桌面音乐播放器</p>
 </div>
 
 ---
-
-<!-- Update your username if 'meanc' is incorrect -->
-
-[![Build Status](https://github.com/meanc/eno-m-desktop/actions/workflows/build.yml/badge.svg)](https://github.com/meanc/eno-m-desktop/actions/workflows/build.yml)
-[![License](https://img.shields.io/github/license/meanc/eno-m-desktop)](LICENSE)
 
 ## ✨ Features
 
@@ -38,8 +33,6 @@
 ```bash
 xattr -dr com.apple.quarantine /Applications/ENO-M.app
 ```
-
-详见 [MACOS_APP_ALLOW_GUIDE.md](MACOS_APP_ALLOW_GUIDE.md) 获取详细说明。
 
 ## 🛠️ Development
 
