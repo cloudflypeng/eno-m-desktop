@@ -4,7 +4,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { execSync } from 'node:child_process'
 import { apiProxy } from '../bili/api/index'
-import { initCookie, setGlobalCookie } from '../bili/cookie'
+import { initCookie, setGlobalCookie, getGlobalCookie } from '../bili/cookie'
 import { setupDownloadHandlers } from './download'
 import { setupUpdateHandlers } from './update'
 import { generateQR, pollQR, fetchUserInfo } from '../bili/login'
@@ -235,6 +235,85 @@ ipcMain.handle('open-win', (_, arg) => {
     childWindow.loadURL(`${VITE_DEV_SERVER_URL}#${arg}`)
   } else {
     childWindow.loadFile(indexHtml, { hash: arg })
+  }
+})
+
+// 打开外部 URL 的新窗口（renderer 可以通过 ipcRenderer.invoke('open-external-window', url) 调用）
+ipcMain.handle('open-external-window', async (_e, url: string) => {
+  try {
+    if (!url) return { success: false, error: 'empty url' }
+
+    const child = new BrowserWindow({
+      width: 1000,
+      height: 800,
+      webPreferences: {
+        preload,
+        // 为外部页面保守起见禁用 nodeIntegration
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+    })
+
+    // 为新窗口的 session 配置请求头拦截（与主窗口保持一致）
+    child.webContents.session.webRequest.onBeforeSendHeaders({
+      urls: [
+        '*://*.hdslb.com/*',
+        '*://*.bilivideo.com/*',
+        '*://*.mcdn.bilivideo.cn/*',
+        '*://*.biliimg.com.cn/*',
+        '*://*.biliimg.cn/*',
+        'https://*.bilibili.com/*',
+        'https://*.bilivideo.com/*',
+        'https://*.bilivideo.cn/*',
+        'https://account.bilibili.com/*'
+      ]
+    }, (details, callback) => {
+      details.requestHeaders['Referer'] = 'https://www.bilibili.com/'
+      callback({ requestHeaders: details.requestHeaders })
+    })
+
+    // 如果主进程持有全局 Cookie，则尝试将其注入到新窗口的 session 中
+    try {
+      const cookieStr = getGlobalCookie()
+      if (cookieStr && cookieStr.trim()) {
+        const origin = new URL(url).origin
+        // 简单分割：按 '; ' 或 ';' 分割，但要排除 cookie 属性（HttpOnly, Path, etc.）
+        const cookiePairs = cookieStr.split(/;\s*/).filter(p => {
+          const lower = p.toLowerCase()
+          // 跳过属性字段
+          return !lower.startsWith('httponly') && !lower.startsWith('secure') &&
+                 !lower.startsWith('samesite') && !lower.startsWith('path=') &&
+                 !lower.startsWith('domain=') && !lower.startsWith('expires=') &&
+                 !lower.startsWith('max-age=')
+        })
+
+        for (const pair of cookiePairs) {
+          const eq = pair.indexOf('=')
+          if (eq > 0) {
+            const name = pair.substring(0, eq).trim()
+            const value = pair.substring(eq + 1).trim()
+            try {
+              // 写入到 child 窗口的 session，设置 path 为 /
+              await child.webContents.session.cookies.set({ url: origin, name, value, path: '/' })
+            } catch (err) {
+              console.warn('Failed to set cookie on child session:', name, err)
+            }
+          }
+        }
+        console.log('Cookies injected into child window session')
+      }
+    } catch (err) {
+      console.warn('Failed to inject cookies into new window session:', err)
+    }
+
+    // 确保 session 配置生效后再加载 URL（延迟 100ms）
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    await child.loadURL(url)
+    return { success: true }
+  } catch (err: any) {
+    console.error('Failed to open external window:', err)
+    return { success: false, error: err?.message }
   }
 })
 

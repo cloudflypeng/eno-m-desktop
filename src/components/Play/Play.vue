@@ -5,14 +5,10 @@ import { useLocalStorage } from '@vueuse/core'
 import { Howl } from 'howler'
 import cn from 'classnames'
 
-// 组件
-import SongItem from '../SongItem.vue'
-import ShareCard from '../sharecard/index.vue'
 // store
 import { VIDEO_MODE, useBlblStore } from '../../blbl/store'
 import { usePlaylistStore } from '../../playlist/store.ts'
 import { useDownloadStore } from '../../store/downloadStore'
-import Video from './video.vue'
 import LoopSwitch from './LoopSwitch.vue'
 
 // hooks & utils
@@ -252,7 +248,7 @@ function changeProgress(e) {
     isDragging.value = true
     return
   }
-  
+
   store.howl.seek(progress.total * e.target.value)
   isDragging.value = false
 }
@@ -328,8 +324,18 @@ function fullScreenTheBody() {
 
   fullScreenStatus.value = document.fullscreenElement
 }
-function openBlTab() {
-  window.open(`https://www.bilibili.com/video/${store.play.bvid}`)
+async function openBlTab() {
+  const url = `https://www.bilibili.com/video/${store.play.bvid}`
+  try {
+    await window.ipcRenderer.invoke('open-external-window', url)
+  } catch (e) {
+    console.warn('open-external-window failed, fallback to browser open', e)
+    try {
+      window.open(url, '_blank')
+    } catch (err) {
+      console.error('Fallback window.open failed', err)
+    }
+  }
 }
 function changeVideoMode() {
   store.videoMode = store.videoMode === VIDEO_MODE.FLOATING ? VIDEO_MODE.DRAWER : VIDEO_MODE.HIDDEN
@@ -396,7 +402,7 @@ async function downloadSong() {
     <div class="flex h-full items-center justify-between px-4 gap-4">
       <!-- 左侧信息区 -->
       <div class="flex items-center gap-4 w-[30%] min-w-[200px]">
-        <div class="relative group cursor-pointer" @click.stop="changeVideoMode">
+        <div class="relative group cursor-pointer" @click.stop="openBlTab">
           <img v-if="store.play.cover" :src="store.play.cover" class="w-14 h-14 rounded object-cover bg-[#282828]">
           <div v-else class="w-14 h-14 rounded bg-[#282828] flex items-center justify-center">
             <div class="i-mingcute:music-2-fill text-2xl" />
@@ -406,19 +412,17 @@ async function downloadSong() {
             <div class="i-mingcute:arrow-up-circle-fill text-2xl text-white" />
           </div>
         </div>
-        
+
         <div class="flex flex-col overflow-hidden">
           <div class="text-white text-sm truncate hover:underline cursor-pointer" v-html="displayData.title" />
           <div class="text-xs truncate hover:text-white cursor-pointer hover:underline">
             {{ store.play.author }}
           </div>
         </div>
-        
+
         <div class="flex gap-3 pl-2">
-          <div 
-            class="i-mingcute:heart-line hover:text-white cursor-pointer text-lg" 
-            @click.stop="PLstore.startAddSong(store.play)" 
-          />
+          <div class="i-mingcute:heart-line hover:text-white cursor-pointer text-lg"
+            @click.stop="PLstore.startAddSong(store.play)" />
         </div>
       </div>
 
@@ -427,11 +431,10 @@ async function downloadSong() {
         <div class="flex items-center gap-6 text-xl mb-1">
           <LoopSwitch />
           <div class="i-mingcute:skip-previous-fill hover:text-white cursor-pointer" @click.stop="change('prev')" />
-          
-          <div 
+
+          <div
             class="w-8 h-8 rounded-full bg-white text-black flex items-center justify-center hover:scale-105 transition-transform cursor-pointer"
-            @click.stop="playControl"
-          >
+            @click.stop="playControl">
             <div v-if="isPlaying" class="i-mingcute:pause-fill text-xl" />
             <div v-else class="i-mingcute:play-fill text-xl pl-0.5" />
           </div>
@@ -443,23 +446,15 @@ async function downloadSong() {
         <div class="flex items-center w-full gap-2 text-xs font-mono">
           <span class="min-w-[40px] text-right">{{ timeDisplay.current }}</span>
           <div class="group relative flex-1 h-1 bg-[#4d4d4d] rounded-full cursor-pointer">
-            <div 
-              class="absolute top-0 left-0 h-full bg-white rounded-full group-hover:bg-green-500" 
-              :style="{ width: `${progress.percent * 100}%` }"
-            />
+            <div class="absolute top-0 left-0 h-full bg-white rounded-full group-hover:bg-green-500"
+              :style="{ width: `${progress.percent * 100}%` }" />
             <!-- 滑块 -->
-            <div 
+            <div
               class="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 shadow pointer-events-none"
-              :style="{ left: `${progress.percent * 100}%`, marginLeft: '-6px' }"
-            />
-            <input
-              v-model="progress.percent" 
-              type="range" 
-              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-              min="0" max="1" step="0.001" 
-              @input="changeProgress" 
-              @change="changeProgress"
-            >
+              :style="{ left: `${progress.percent * 100}%`, marginLeft: '-6px' }" />
+            <input v-model="progress.percent" type="range"
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" min="0" max="1" step="0.001"
+              @input="changeProgress" @change="changeProgress">
           </div>
           <span class="min-w-[40px]">{{ timeDisplay.total }}</span>
         </div>
@@ -467,61 +462,50 @@ async function downloadSong() {
 
       <!-- 右侧功能区 -->
       <div class="flex items-center justify-end gap-3 w-[30%] min-w-[200px]">
-        <div 
-          :class="cn('i-mingcute:playlist-fill cursor-pointer text-lg transition-colors', showPlaylist ? 'text-[#1db954]' : 'hover:text-white')" 
-          @click="toggleList" 
-        />
-        
-        <div 
+        <div
+          :class="cn('i-mingcute:playlist-fill cursor-pointer text-lg transition-colors', showPlaylist ? 'text-[#1db954]' : 'hover:text-white')"
+          @click="toggleList" />
+
+        <div
           :class="cn('cursor-pointer text-lg transition-colors hover:text-white relative group', isDownloading ? 'text-[#1db954]' : '')"
-          @click="!isDownloading && downloadSong()"
-          :title="isDownloading ? '下载中...' : '下载歌曲'"
-        >
+          @click="!isDownloading && downloadSong()" :title="isDownloading ? '下载中...' : '下载歌曲'">
           <div v-if="isDownloading" class="i-mingcute:loading-3-fill animate-spin" />
           <div v-else class="i-mingcute:download-2-fill" />
           <!-- 下载进度提示 -->
-          <div v-if="isDownloading && downloadProgress > 0" class="absolute -top-8 right-0 bg-black/80 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+          <div v-if="isDownloading && downloadProgress > 0"
+            class="absolute -top-8 right-0 bg-black/80 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
             {{ Math.round(downloadProgress) }}%
           </div>
         </div>
-        
+
         <div class="flex items-center gap-2 w-32 group">
           <div v-if="isCloseVoice" class="i-mingcute:volume-mute-line text-lg" @click="setVoice" />
           <div v-else class="i-mingcute:volume-line text-lg" @click="setVoice" />
-          
+
           <div class="flex-1 h-1 bg-[#4d4d4d] rounded-full cursor-pointer relative" @click="handleChangeVoice">
-            <div class="absolute top-0 left-0 h-full bg-white rounded-full group-hover:bg-green-500" :style="{ width: `${voice * 100}%` }" />
-             <input
-              v-if="!isCloseVoice" 
-              v-model="voice" 
-              type="range" 
-              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
-              min="0" max="1" step="0.01" 
-              @change="handleChangeVoice"
-            >
+            <div class="absolute top-0 left-0 h-full bg-white rounded-full group-hover:bg-green-500"
+              :style="{ width: `${voice * 100}%` }" />
+            <input v-if="!isCloseVoice" v-model="voice" type="range"
+              class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" min="0" max="1" step="0.01"
+              @change="handleChangeVoice">
           </div>
         </div>
 
         <div class="i-mingcute:fullscreen-line hover:text-white cursor-pointer text-lg" @click="fullScreenTheBody" />
       </div>
     </div>
-
-    <Video
-      v-if="store.videoMode !== VIDEO_MODE.HIDDEN"
-      :is-playing="isPlaying"
-      :video-url="store.play.video"
-    />
   </section>
 </template>
 
 <style scoped>
 /* 移除默认的 range input 样式，使用自定义样式 */
 input[type=range] {
-  -webkit-appearance: none; 
-  background: transparent; 
+  -webkit-appearance: none;
+  background: transparent;
   cursor: pointer;
   z-index: 20;
 }
+
 input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
   height: 12px;

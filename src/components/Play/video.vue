@@ -1,4 +1,5 @@
 <script setup>
+// 这个组件已经废弃
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useFullscreen } from '@vueuse/core'
 import cn from 'classnames'
@@ -143,38 +144,17 @@ function closeVideo() {
 
 <template>
   <Teleport to="body">
-    <div
-      v-show="store.videoMode === VIDEO_MODE.FLOATING"
-      ref="floatingLayer"
-      :style="layerStyle"
+    <div v-show="store.videoMode === VIDEO_MODE.FLOATING" ref="floatingLayer" :style="layerStyle"
       :class="cn('w-[400px] cursor-move group ', !isDragging && 'transition-all duration-300 ease-in-out')"
-      @mousedown="startDrag"
-    >
-      <video
-        id="video-eno"
-        ref="videoDom"
-        w-full h-full object-fill rd-lg overflow-auto
-        class="transItem"
-        :src="props.videoUrl"
-      />
-      <div
-        w-full h-full
-        absolute top-0 left-0
-        p-4
-        bg="black/30"
-        text-white
-        justify-end
-        hidden
-        group-hover:flex
-      >
+      @mousedown="startDrag">
+      <video id="video-eno" ref="videoDom" w-full h-full object-fill rd-lg overflow-auto class="transItem"
+        :src="props.videoUrl" />
+      <div w-full h-full absolute top-0 left-0 p-4 bg="black/30" text-white justify-end hidden group-hover:flex>
         <!-- <div
           class="i-material-symbols:float-landscape-2-outline-rounded w-1rem h-1rem mr-3 cursor-pointer"
         /> -->
         <!-- 全屏 -->
-        <div
-          class="i-mingcute:fullscreen-line w-1rem h-1rem cursor-pointer mr-3"
-          @click="toggleFullscreen"
-        />
+        <div class="i-mingcute:fullscreen-line w-1rem h-1rem cursor-pointer mr-3" @click="toggleFullscreen" />
         <div class="i-mingcute:close-line w-1rem h-1rem cursor-pointer" @click="closeVideo" />
       </div>
     </div>
